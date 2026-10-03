@@ -12,9 +12,10 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 COPY backend backend
 COPY frontend frontend
 COPY deploy/entrada.sh /entrada.sh
+# El contenedor arranca como root solo para ajustar permisos de /datos;
+# Gunicorn atiende como el usuario sin privilegios "portal" (ver deploy/entrada.sh).
 RUN chmod +x /entrada.sh && useradd --create-home portal && mkdir -p /datos && chown portal /datos
 
-USER portal
 WORKDIR /app/backend
 EXPOSE 5000
 VOLUME ["/datos"]
