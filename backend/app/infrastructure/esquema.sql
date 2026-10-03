@@ -64,3 +64,27 @@ CREATE TABLE IF NOT EXISTS intentos_login (
     creado_en  REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_intentos_clave ON intentos_login (clave, creado_en);
+
+-- Identidad del evento: logo y aliados (organizadores, patrocinadores, divulgadores…)
+
+CREATE TABLE IF NOT EXISTS ajustes (
+    clave  TEXT PRIMARY KEY,
+    valor  TEXT
+);
+
+CREATE TABLE IF NOT EXISTS grupos_aliados (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    titulo  TEXT    NOT NULL,
+    orden   INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS aliados (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    grupo_id    INTEGER NOT NULL REFERENCES grupos_aliados(id) ON DELETE CASCADE,
+    nombre      TEXT    NOT NULL,
+    url         TEXT    NOT NULL DEFAULT '',
+    archivo_id  INTEGER REFERENCES archivos(id) ON DELETE SET NULL,
+    orden       INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS ix_aliados_grupo ON aliados (grupo_id, orden);
+CREATE INDEX IF NOT EXISTS ix_aliados_archivo ON aliados (archivo_id);

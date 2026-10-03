@@ -73,8 +73,19 @@ class ServicioArchivos:
             self._actividad.registrar("descarga", usuario.id, archivo_id)
         return archivo, self._almacen.ruta(archivo.nombre_guardado), False
 
+    def ruta_publica(self, archivo_id: int, miniatura: bool) -> tuple[Archivo, str, bool]:
+        """Ruta de un archivo ya autorizado como público (logos). Devuelve (archivo, ruta, es_miniatura)."""
+        archivo = self._repo.por_id(archivo_id)
+        if not archivo:
+            raise NoEncontrado("El archivo no existe.")
+        if miniatura:
+            ruta = self._almacen.miniatura(archivo.nombre_guardado)
+            if ruta:
+                return archivo, ruta, True
+        return archivo, self._almacen.ruta(archivo.nombre_guardado), False
+
     def limpiar_huerfanos(self) -> int:
-        """Borra archivos que ya no usa ningún ítem (y que tienen más de un día subidos)."""
+        """Borra archivos que ya no usa ningún ítem, aliado ni el logo (y con más de un día subidos)."""
         huerfanos = self._repo.huerfanos()
         for archivo in huerfanos:
             self._almacen.eliminar(archivo.nombre_guardado)

@@ -1,7 +1,7 @@
 """Entidades → diccionarios JSON. Nunca se expone el hash de la contraseña."""
 from __future__ import annotations
 
-from ..domain.entidades import Archivo, Item, Seccion, Usuario
+from ..domain.entidades import Aliado, Archivo, GrupoAliados, Item, Seccion, Usuario
 
 
 def _fecha(valor):
@@ -40,3 +40,23 @@ def seccion(s: Seccion, cantidad_items: int | None = None, con_items: bool = Fal
     if con_items:
         datos["items"] = [item(i) for i in s.items]
     return datos
+
+
+def archivo_publico(a: Archivo | None) -> dict | None:
+    if not a:
+        return None
+    return {"id": a.id, "nombre": a.nombre_original, "tipo_mime": a.tipo_mime,
+            "url": f"/api/v1/publico/archivos/{a.id}"}
+
+
+def aliado(a: Aliado) -> dict:
+    return {"id": a.id, "grupo_id": a.grupo_id, "nombre": a.nombre, "url": a.url,
+            "archivo_id": a.archivo_id, "logo": archivo_publico(a.archivo), "orden": a.orden}
+
+
+def grupo_aliados(g: GrupoAliados) -> dict:
+    return {"id": g.id, "titulo": g.titulo, "orden": g.orden, "aliados": [aliado(a) for a in g.aliados]}
+
+
+def marca(m) -> dict:
+    return {"logo": archivo_publico(m.logo), "grupos": [grupo_aliados(g) for g in m.grupos]}

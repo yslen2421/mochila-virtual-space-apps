@@ -87,3 +87,24 @@ class Archivo:
     tipo_mime: str
     tamano_bytes: int
     creado_en: datetime | None = None
+
+
+@dataclass
+class GrupoAliados:
+    """Un grupo de la sección de aliados: Organizadores, Patrocinadores, Divulgadores…"""
+    id: int | None
+    titulo: str
+    orden: int = 0
+    aliados: list["Aliado"] = field(default_factory=list)
+
+
+@dataclass
+class Aliado:
+    """Una organización aliada, mostrada con su logo."""
+    id: int | None
+    grupo_id: int
+    nombre: str
+    url: str = ""
+    archivo_id: int | None = None
+    orden: int = 0
+    archivo: "Archivo | None" = None

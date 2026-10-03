@@ -12,6 +12,7 @@ from .application.archivos import ServicioArchivos
 from .application.autenticacion import ServicioAutenticacion
 from .application.contenido import ServicioItems, ServicioSecciones
 from .application.estadisticas import ServicioEstadisticas
+from .application.marca import ServicioMarca
 from .application.mochila import ServicioMochila
 from .application.usuarios import ServicioUsuarios
 from .configuracion import Configuracion
@@ -21,6 +22,8 @@ from .infrastructure.sqlite import (
     BaseDatos,
     ControlIntentosSqlite,
     RegistroActividadSqlite,
+    RepositorioAjustesSqlite,
+    RepositorioAliadosSqlite,
     RepositorioArchivosSqlite,
     RepositorioItemsSqlite,
     RepositorioSeccionesSqlite,
@@ -39,6 +42,7 @@ class Contenedor:
     archivos: ServicioArchivos
     usuarios: ServicioUsuarios
     estadisticas: ServicioEstadisticas
+    marca: ServicioMarca
 
 
 def construir(config: Configuracion) -> Contenedor:
@@ -62,4 +66,5 @@ def construir(config: Configuracion) -> Contenedor:
         archivos=archivos,
         usuarios=ServicioUsuarios(repo_usuarios, hasher),
         estadisticas=ServicioEstadisticas(repo_usuarios, actividad),
+        marca=ServicioMarca(RepositorioAjustesSqlite(db), RepositorioAliadosSqlite(db), repo_archivos, archivos),
     )

@@ -62,6 +62,25 @@ def salud():
     return jsonify(estado="ok")
 
 
+# ---------------------------------------------------------------- identidad del evento (pública)
+
+@api.get("/publico/marca")
+def publico_marca():
+    """Logo del evento y aliados: se muestran incluso antes de iniciar sesión."""
+    # Sin caché: si el Superadmin cambia el logo, se ve de inmediato.
+    return jsonify(ser.marca(svc().marca.marca(incluir_grupos_vacios=False)))
+
+
+@api.get("/publico/archivos/<int:archivo_id>")
+def publico_archivo(archivo_id: int):
+    archivo, ruta, es_miniatura = svc().marca.archivo_publico(archivo_id, request.args.get("miniatura") == "1")
+    respuesta = send_file(ruta, mimetype="image/webp" if es_miniatura else archivo.tipo_mime,
+                          download_name=archivo.nombre_original, conditional=True, max_age=3600)
+    respuesta.headers["Content-Security-Policy"] = "sandbox; default-src 'none'; style-src 'unsafe-inline'"
+    respuesta.headers["Cache-Control"] = "public, max-age=3600"
+    return respuesta
+
+
 # ---------------------------------------------------------------- autenticación
 
 @api.post("/auth/login")
@@ -265,6 +284,74 @@ def admin_restablecer_contrasena(usuario_id: int):
 @requiere_superadmin
 def admin_eliminar_usuario(usuario_id: int):
     svc().usuarios.eliminar(g.usuario, usuario_id)
+    return "", 204
+
+
+# ---------------------------------------------------------------- admin: logos y aliados
+
+@api.get("/admin/marca")
+@requiere_superadmin
+def admin_marca():
+    return jsonify(ser.marca(svc().marca.marca(incluir_grupos_vacios=True)))
+
+
+@api.put("/admin/marca/logo")
+@requiere_superadmin
+def admin_fijar_logo():
+    return jsonify(logo=ser.archivo_publico(svc().marca.fijar_logo(esquemas.logo_evento(_json()))))
+
+
+@api.post("/admin/aliados/grupos")
+@requiere_superadmin
+def admin_crear_grupo():
+    return jsonify(grupo=ser.grupo_aliados(svc().marca.crear_grupo(esquemas.titulo_grupo(_json())))), 201
+
+
+@api.put("/admin/aliados/grupos/orden")
+@requiere_superadmin
+def admin_reordenar_grupos():
+    svc().marca.reordenar_grupos(esquemas.lista_ids(_json()))
+    return jsonify(ok=True)
+
+
+@api.route("/admin/aliados/grupos/<int:grupo_id>", methods=["PUT", "PATCH"])
+@requiere_superadmin
+def admin_renombrar_grupo(grupo_id: int):
+    return jsonify(grupo=ser.grupo_aliados(svc().marca.renombrar_grupo(grupo_id, esquemas.titulo_grupo(_json()))))
+
+
+@api.delete("/admin/aliados/grupos/<int:grupo_id>")
+@requiere_superadmin
+def admin_eliminar_grupo(grupo_id: int):
+    svc().marca.eliminar_grupo(grupo_id)
+    return "", 204
+
+
+@api.post("/admin/aliados/grupos/<int:grupo_id>/aliados")
+@requiere_superadmin
+def admin_crear_aliado(grupo_id: int):
+    a = svc().marca.crear_aliado(grupo_id, esquemas.datos_aliado(_json(), requerido=True))
+    return jsonify(aliado=ser.aliado(a)), 201
+
+
+@api.put("/admin/aliados/grupos/<int:grupo_id>/aliados/orden")
+@requiere_superadmin
+def admin_reordenar_aliados(grupo_id: int):
+    svc().marca.reordenar_aliados(grupo_id, esquemas.lista_ids(_json()))
+    return jsonify(ok=True)
+
+
+@api.route("/admin/aliados/<int:aliado_id>", methods=["PUT", "PATCH"])
+@requiere_superadmin
+def admin_actualizar_aliado(aliado_id: int):
+    a = svc().marca.actualizar_aliado(aliado_id, esquemas.datos_aliado(_json(), requerido=False))
+    return jsonify(aliado=ser.aliado(a))
+
+
+@api.delete("/admin/aliados/<int:aliado_id>")
+@requiere_superadmin
+def admin_eliminar_aliado(aliado_id: int):
+    svc().marca.eliminar_aliado(aliado_id)
     return "", 204
 
 

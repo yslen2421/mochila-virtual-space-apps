@@ -285,10 +285,48 @@ async function copiarTexto(texto) {
   }
 }
 
+/* ---------------------------------------------------------------- marca del evento */
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function iconoPin() {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 32");
+  svg.setAttribute("aria-hidden", "true");
+  const ruta = document.createElementNS(SVG_NS, "path");
+  ruta.setAttribute("d", "M12 0C5.4 0 0 5.3 0 11.9 0 20.8 12 32 12 32s12-11.2 12-20.1C24 5.3 18.6 0 12 0Zm0 16.6a4.7 4.7 0 1 1 0-9.4 4.7 4.7 0 0 1 0 9.4Z");
+  svg.append(ruta);
+  return svg;
+}
+
+/** "NASA / SPACE APPS / • San Vicente Ferrer", como en los pósters del evento. */
+function marcaEvento({ compacta = false } = {}) {
+  return h("div", { class: `marca-evento ${compacta ? "compacta" : ""}` },
+    h("p", { class: "lockup" },
+      h("span", { class: "lockup-nasa" }, "NASA"),
+      h("span", { class: "lockup-space" }, "Space Apps")),
+    h("p", { class: "pin" }, iconoPin(), "San Vicente Ferrer"));
+}
+
+/* ---------------------------------------------------------------- identidad del evento */
+
+/** Logo y aliados (público). Si tarda o falla, la página sigue sin ellos. */
+async function cargarMarca(api) {
+  const espera = new Promise((resolver) => setTimeout(() => resolver(null), 2500));
+  try {
+    return await Promise.race([api.pedir("/publico/marca"), espera]);
+  } catch {
+    return null;
+  }
+}
+
+function logoDeMarca(marca) {
+  return marca && marca.logo ? marca.logo.url : null;
+}
+
 /* ---------------------------------------------------------------- pantalla de ingreso */
 
-function pantallaIngreso({ titulo, subtitulo, nota, enlace, mensajeInicial, alEntrar }) {
-  const plantilla = document.getElementById("plantilla-espiral");
+function pantallaIngreso({ titulo, subtitulo, nota, enlace, logo, mensajeInicial, alEntrar }) {
   const errorZona = h("div", { "aria-live": "assertive" });
   const usuario = h("input", { type: "text", id: "usuario", name: "usuario", autocomplete: "username",
     autocapitalize: "none", spellcheck: "false", required: true });
@@ -337,13 +375,16 @@ function pantallaIngreso({ titulo, subtitulo, nota, enlace, mensajeInicial, alEn
     enlace && h("p", { class: "nota" }, h("a", { href: enlace.href }, enlace.texto)));
 
   const arte = h("div", { class: "ingreso-arte" });
+  const plantilla = document.getElementById("plantilla-cielo");
   if (plantilla) arte.append(plantilla.content.cloneNode(true));
   arte.append(h("div", { class: "ingreso-marca" },
-    h("p", { class: "organiza" }, "Ola Fibonacci presenta"),
+    logo && h("span", { class: "placa-logo ingreso-logo" }, h("img", { src: logo, alt: "Logo del evento" })),
+    marcaEvento(),
     h("h1", {}, titulo),
-    h("p", {}, "San Vicente Ferrer, Antioquia. 14 y 15 de noviembre de 2026.")));
+    h("p", { class: "eslogan" }, "La próxima frontera, donde tus ideas nos llevarán más lejos."),
+    h("p", { class: "fechas" }, "14 y 15 de noviembre de 2026. Organiza Ola Fibonacci.")));
 
-  const pantalla = h("main", { class: "ingreso" }, arte, h("section", { class: "ingreso-formulario" }, formulario));
+  const pantalla = h("main", { class: "ingreso tema-espacio" }, arte, h("section", { class: "ingreso-formulario" }, formulario));
   setTimeout(() => usuario.focus(), 50);
   return pantalla;
 }

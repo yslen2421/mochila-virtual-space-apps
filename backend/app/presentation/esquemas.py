@@ -164,3 +164,24 @@ def actualizar_usuario(datos: Any) -> ActualizarUsuario:
     return ActualizarUsuario(
         nombre=_texto(d, "nombre", maximo=120), email=_texto(d, "email", maximo=200),
         modalidad=_enum(d, "modalidad", Modalidad), activo=_booleano(d, "activo"))
+
+
+# ---------------------------------------------------------------- logos y aliados
+
+def logo_evento(datos: Any) -> int | None:
+    d = _cuerpo(datos)
+    if "archivo_id" not in d:
+        raise ErrorValidacion("Envía 'archivo_id' (o null para quitar el logo).", {"campo": "archivo_id"})
+    return _entero(d, "archivo_id")
+
+
+def titulo_grupo(datos: Any) -> str:
+    return _texto(_cuerpo(datos), "titulo", True, 80)
+
+
+def datos_aliado(datos: Any, requerido: bool):
+    from ..application.marca import DatosAliado
+    d = _cuerpo(datos)
+    quitar = "archivo_id" in d and d["archivo_id"] is None
+    return DatosAliado(nombre=_texto(d, "nombre", requerido, 120), url=_texto(d, "url", maximo=2000),
+                       archivo_id=_entero(d, "archivo_id"), quitar_logo=quitar)

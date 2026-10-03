@@ -14,7 +14,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from ..domain.entidades import Archivo, Item, Modalidad, Rol, Seccion, TipoItem, Usuario
+from ..domain.entidades import Aliado, Archivo, GrupoAliados, Item, Modalidad, Rol, Seccion, TipoItem, Usuario
 
 ESQUEMA = Path(__file__).with_name("esquema.sql")
 
@@ -289,9 +289,107 @@ class RepositorioArchivosSqlite:
 
     def huerfanos(self) -> list[Archivo]:
         limite = (datetime.now(timezone.utc) - self._gracia).isoformat(timespec="seconds")
+        # Un archivo está en uso si lo usa un ítem, un aliado o es el logo del evento.
         return [self._a_entidad(f) for f in self._db.consultar(
-            """SELECT a.* FROM archivos a LEFT JOIN items i ON i.archivo_id = a.id
-               WHERE i.id IS NULL AND a.creado_en < ?""", (limite,))]
+            """SELECT a.* FROM archivos a
+               WHERE a.creado_en < ?
+                 AND NOT EXISTS (SELECT 1 FROM items i WHERE i.archivo_id = a.id)
+                 AND NOT EXISTS (SELECT 1 FROM aliados al WHERE al.archivo_id = a.id)
+                 AND NOT EXISTS (SELECT 1 FROM ajustes aj
+                                 WHERE aj.clave = 'logo_archivo_id' AND aj.valor = CAST(a.id AS TEXT))""",
+            (limite,))]
+
+
+# ---------------------------------------------------------------- identidad del evento
+
+class RepositorioAjustesSqlite:
+    def __init__(self, db: BaseDatos):
+        self._db = db
+
+    def obtener(self, clave: str) -> str | None:
+        f = self._db.uno("SELECT valor FROM ajustes WHERE clave = ?", (clave,))
+        return f["valor"] if f else None
+
+    def fijar(self, clave: str, valor: str | None) -> None:
+        with self._db.transaccion() as c:
+            if valor is None:
+                c.execute("DELETE FROM ajustes WHERE clave = ?", (clave,))
+            else:
+                c.execute("INSERT INTO ajustes (clave, valor) VALUES (?, ?) "
+                          "ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor", (clave, valor))
+
+
+class RepositorioAliadosSqlite:
+    def __init__(self, db: BaseDatos):
+        self._db = db
+
+    @staticmethod
+    def _grupo(f: sqlite3.Row) -> GrupoAliados:
+        return GrupoAliados(id=f["id"], titulo=f["titulo"], orden=f["orden"])
+
+    @staticmethod
+    def _aliado(f: sqlite3.Row) -> Aliado:
+        return Aliado(id=f["id"], grupo_id=f["grupo_id"], nombre=f["nombre"], url=f["url"],
+                      archivo_id=f["archivo_id"], orden=f["orden"])
+
+    def grupos(self) -> list[GrupoAliados]:
+        return [self._grupo(f) for f in self._db.consultar("SELECT * FROM grupos_aliados ORDER BY orden, id")]
+
+    def grupo_por_id(self, grupo_id: int) -> GrupoAliados | None:
+        f = self._db.uno("SELECT * FROM grupos_aliados WHERE id = ?", (grupo_id,))
+        return self._grupo(f) if f else None
+
+    def guardar_grupo(self, g: GrupoAliados) -> GrupoAliados:
+        with self._db.transaccion() as c:
+            if g.id is None:
+                g.id = c.execute("INSERT INTO grupos_aliados (titulo, orden) VALUES (?, ?)",
+                                 (g.titulo, g.orden)).lastrowid
+            else:
+                c.execute("UPDATE grupos_aliados SET titulo = ?, orden = ? WHERE id = ?", (g.titulo, g.orden, g.id))
+        return self.grupo_por_id(g.id)
+
+    def eliminar_grupo(self, grupo_id: int) -> None:
+        with self._db.transaccion() as c:
+            c.execute("DELETE FROM grupos_aliados WHERE id = ?", (grupo_id,))
+
+    def reordenar_grupos(self, ids_en_orden: list[int]) -> None:
+        with self._db.transaccion() as c:
+            c.executemany("UPDATE grupos_aliados SET orden = ? WHERE id = ?",
+                          [(pos, gid) for pos, gid in enumerate(ids_en_orden)])
+
+    def siguiente_orden_grupo(self) -> int:
+        return self._db.uno("SELECT COALESCE(MAX(orden), -1) + 1 AS n FROM grupos_aliados")["n"]
+
+    def aliados(self) -> list[Aliado]:
+        return [self._aliado(f) for f in self._db.consultar("SELECT * FROM aliados ORDER BY grupo_id, orden, id")]
+
+    def aliado_por_id(self, aliado_id: int) -> Aliado | None:
+        f = self._db.uno("SELECT * FROM aliados WHERE id = ?", (aliado_id,))
+        return self._aliado(f) if f else None
+
+    def guardar_aliado(self, a: Aliado) -> Aliado:
+        valores = (a.grupo_id, a.nombre, a.url, a.archivo_id, a.orden)
+        with self._db.transaccion() as c:
+            if a.id is None:
+                a.id = c.execute("INSERT INTO aliados (grupo_id, nombre, url, archivo_id, orden) VALUES (?,?,?,?,?)",
+                                 valores).lastrowid
+            else:
+                c.execute("UPDATE aliados SET grupo_id=?, nombre=?, url=?, archivo_id=?, orden=? WHERE id=?",
+                          (*valores, a.id))
+        return self.aliado_por_id(a.id)
+
+    def eliminar_aliado(self, aliado_id: int) -> None:
+        with self._db.transaccion() as c:
+            c.execute("DELETE FROM aliados WHERE id = ?", (aliado_id,))
+
+    def reordenar_aliados(self, grupo_id: int, ids_en_orden: list[int]) -> None:
+        with self._db.transaccion() as c:
+            c.executemany("UPDATE aliados SET orden = ? WHERE id = ? AND grupo_id = ?",
+                          [(pos, aid, grupo_id) for pos, aid in enumerate(ids_en_orden)])
+
+    def siguiente_orden_aliado(self, grupo_id: int) -> int:
+        return self._db.uno("SELECT COALESCE(MAX(orden), -1) + 1 AS n FROM aliados WHERE grupo_id = ?",
+                            (grupo_id,))["n"]
 
 
 # ---------------------------------------------------------------- actividad e intentos

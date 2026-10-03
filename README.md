@@ -70,6 +70,9 @@ Todo lo que importa (base de datos, archivos subidos, respaldos) vive en la carp
   sesión anterior se cierra.
 - **¿Una cuenta no debería entrar?** *Desactivar* la saca de inmediato.
 - **Anuncios:** agrega un ítem de texto en la sección Anuncios; se ve al instante.
+- **Logos:** en *Logos y aliados* sube el logo del evento (aparece arriba en el portal y en la
+  pantalla de ingreso) y los logos de organizadores, patrocinadores y divulgadores, que se
+  muestran al final de la página de inicio. Puedes crear más grupos, renombrarlos y ordenarlos.
 - **Estadísticas:** cuántas personas ya entraron, qué secciones visitan y qué descargan.
 
 ### ¿Se olvidó la contraseña del admin?
@@ -217,6 +220,13 @@ Todas las respuestas de error tienen la misma forma:
 | PUT, DELETE | `/admin/usuarios/{id}` | superadmin | Editar, activar/desactivar / borrar |
 | POST | `/admin/usuarios/{id}/restablecer-contrasena` | superadmin | Nueva contraseña |
 | GET | `/admin/estadisticas` | superadmin | Ingresos, visitas por sección, descargas |
+| GET | `/publico/marca` | todos | Logo del evento y aliados (grupos con al menos un aliado) |
+| GET | `/publico/archivos/{id}` | todos | Imagen de un logo (`?miniatura=1`); solo logos, nada más es público |
+| GET | `/admin/marca` | superadmin | Logo y todos los grupos de aliados, incluso vacíos |
+| PUT | `/admin/marca/logo` | superadmin | `{archivo_id}` o `{archivo_id: null}` para quitarlo |
+| POST, PUT, DELETE | `/admin/aliados/grupos[/{id}]` | superadmin | Crear, renombrar, borrar grupos (`PUT …/grupos/orden` reordena) |
+| POST | `/admin/aliados/grupos/{id}/aliados` | superadmin | `{nombre, url, archivo_id}` (`PUT …/aliados/orden` reordena) |
+| PUT, DELETE | `/admin/aliados/{id}` | superadmin | Editar / borrar un aliado |
 | GET | `/salud` | todos | Para monitoreo |
 
 Tipos de ítem: `texto`, `enlace`, `archivo`, `imagen`, `evento` (fecha, hora de inicio y
@@ -234,7 +244,7 @@ Por defecto Flask sirve también el front (más simple de mantener). Si prefiere
 
 ```bash
 cd backend
-python -m pytest            # 15 pruebas: dominio, permisos, flujo completo, sesiones
+python -m pytest            # 22 pruebas: dominio, permisos, flujo completo, sesiones, logos
 ```
 
 ## 7. Ideas para después

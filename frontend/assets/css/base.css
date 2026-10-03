@@ -1,62 +1,65 @@
 /* ==========================================================================
-   Base compartida: tipografías, tokens, controles. La usan portal y panel.
+   Base compartida: tipografías, tokens de marca, controles e ingreso.
+   Marca tomada de los pósters del NASA Space Apps San Vicente Ferrer:
+   cielo violeta profundo, cordillera violeta, rojo Marte, blanco estrella.
    ========================================================================== */
 
-@font-face { font-family: "Bricolage"; src: url("../fonts/bricolage-grotesque-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-display: swap; }
-@font-face { font-family: "Bricolage"; src: url("../fonts/bricolage-grotesque-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-display: swap; }
-@font-face { font-family: "Bricolage"; src: url("../fonts/bricolage-grotesque-latin-800-normal.woff2") format("woff2"); font-weight: 800; font-display: swap; }
+@font-face { font-family: "Saira"; src: url("../fonts/saira-condensed-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Saira"; src: url("../fonts/saira-condensed-latin-800-normal.woff2") format("woff2"); font-weight: 800; font-display: swap; }
 @font-face { font-family: "Atkinson"; src: url("../fonts/atkinson-hyperlegible-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Atkinson"; src: url("../fonts/atkinson-hyperlegible-latin-400-italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
 @font-face { font-family: "Atkinson"; src: url("../fonts/atkinson-hyperlegible-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-display: swap; }
 
 :root {
-  /* Paleta */
-  --noche: #172042;          /* tinta, banda superior */
-  --neblina: #eef1f6;        /* fondo de página */
-  --papel: #ffffff;          /* superficies */
-  --hilo: #f5b700;           /* puntadas de las insignias */
-  --orbita: #2f4ad0;         /* acciones y enlaces */
-  --paramo: #1f7a5a;         /* "ahora", éxito */
-  --alerta: #c23b2a;         /* errores */
+  /* Paleta de marca */
+  --cosmos: #0e0a24;         /* cielo nocturno */
+  --nebulosa: #1a1442;       /* superficies sobre el cielo */
+  --nebulosa-2: #241b57;
+  --cordillera: #5b34c4;     /* montañas violeta */
+  --lavanda: #b9a6ff;        /* enlaces y detalles sobre oscuro */
+  --marte: #d4302a;          /* rojo NASA / rover / pin */
+  --marte-claro: #ff5a47;    /* rojo legible como texto sobre oscuro */
+  --polvo: #f08a5d;          /* polvo marciano */
+  --estrella: #f3f0ff;       /* texto sobre oscuro */
 
-  /* Roles */
-  --fondo: var(--neblina);
-  --superficie: var(--papel);
-  --superficie-2: #f6f8fb;
-  --texto: #1a2238;
-  --texto-suave: #4f5873;
-  --linea: #d8deea;
-  --accion: var(--orbita);
+  /* Roles: panel de organización (claro) */
+  --fondo: #f4f2fb;
+  --superficie: #ffffff;
+  --superficie-2: #f0edf9;
+  --texto: #1d1640;
+  --texto-suave: #595377;
+  --linea: #dcd6ef;
+  --accion: var(--cordillera);
   --accion-texto: #ffffff;
-  --accion-suave: #e6eafc;
-  --exito: var(--paramo);
-  --exito-suave: #e1f2ea;
-  --peligro: var(--alerta);
-  --peligro-suave: #fbe7e4;
-  --foco: #f5b700;
+  --accion-suave: #ebe5fb;
+  --exito: #1d7a55;
+  --exito-suave: #dff3ea;
+  --peligro: #c92c27;
+  --peligro-suave: #fbe6e4;
+  --foco: #ff8a3d;
 
-  /* Tonos de las insignias (hilo de fondo de cada parche) */
-  --tono-1: #2a3577;
-  --tono-2: #1f6b52;
-  --tono-3: #8a5a12;
-  --tono-4: #2f4ad0;
-  --tono-5: #6b3fa0;
-  --tono-6: #a13a2e;
+  /* Tonos de las insignias de misión */
+  --tono-1: #5b34c4;
+  --tono-2: #b8322a;
+  --tono-3: #2b3a9e;
+  --tono-4: #8e2f8f;
+  --tono-5: #a8552c;
+  --tono-6: #1f6f7a;
 
   /* Tipografía (escala 1.25) */
-  --familia-titulo: "Bricolage", "Segoe UI", system-ui, sans-serif;
+  --familia-titulo: "Saira", "Arial Narrow", system-ui, sans-serif;
   --familia-texto: "Atkinson", "Segoe UI", system-ui, sans-serif;
   --t-xs: 0.8rem;
   --t-sm: 0.9rem;
   --t-md: 1.0625rem;
   --t-lg: 1.33rem;
   --t-xl: 1.66rem;
-  --t-2xl: 2.07rem;
-  --t-3xl: 2.6rem;
+  --t-2xl: 2.2rem;
+  --t-3xl: 2.9rem;
 
-  --radio-s: 6px;
-  --radio-m: 12px;
-  --sombra: 0 1px 2px rgba(23, 32, 66, 0.08), 0 4px 16px rgba(23, 32, 66, 0.06);
+  --radio-s: 8px;
+  --radio-m: 16px;
+  --sombra: 0 1px 2px rgba(29, 22, 64, 0.08), 0 6px 20px rgba(29, 22, 64, 0.07);
   --ancho: 1080px;
   --margen: 16px;
   color-scheme: light;
@@ -64,22 +67,43 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --fondo: #0f1530;
-    --superficie: #182046;
-    --superficie-2: #1d2654;
-    --texto: #e8ecf8;
-    --texto-suave: #aab3d0;
-    --linea: #2c3769;
-    --accion: #8fa1ff;
-    --accion-texto: #0f1530;
-    --accion-suave: #26306a;
-    --exito: #5fd0a3;
-    --exito-suave: #153a33;
-    --peligro: #ff8a78;
-    --peligro-suave: #45201f;
-    --sombra: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --fondo: var(--cosmos);
+    --superficie: var(--nebulosa);
+    --superficie-2: var(--nebulosa-2);
+    --texto: var(--estrella);
+    --texto-suave: #b8b0dc;
+    --linea: #352a72;
+    --accion: var(--lavanda);
+    --accion-texto: var(--cosmos);
+    --accion-suave: #2c2266;
+    --exito: #5fe0a8;
+    --exito-suave: #133a33;
+    --peligro: var(--marte-claro);
+    --peligro-suave: #45191c;
+    --sombra: 0 1px 2px rgba(0, 0, 0, 0.35);
     color-scheme: dark;
   }
+}
+
+/* Tema "espacio": el portal de participantes y las pantallas de ingreso
+   son siempre oscuros, como los pósters del evento. */
+.tema-espacio {
+  --fondo: var(--cosmos);
+  --superficie: var(--nebulosa);
+  --superficie-2: var(--nebulosa-2);
+  --texto: var(--estrella);
+  --texto-suave: #b8b0dc;
+  --linea: #352a72;
+  --accion: var(--marte);
+  --accion-texto: #ffffff;
+  --accion-suave: #2c2266;
+  --enlace: var(--lavanda);
+  --exito: #5fe0a8;
+  --exito-suave: #133a33;
+  --peligro: var(--marte-claro);
+  --peligro-suave: #45191c;
+  --sombra: 0 1px 0 rgba(185, 166, 255, 0.08) inset, 0 10px 30px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -98,15 +122,16 @@ body {
 
 h1, h2, h3, h4 {
   font-family: var(--familia-titulo);
-  line-height: 1.15;
+  font-weight: 700;
+  line-height: 1.1;
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: 0.005em;
   text-wrap: balance;
 }
 
 p { margin: 0; }
 
-a { color: var(--accion); text-underline-offset: 0.2em; }
+a { color: var(--enlace, var(--accion)); text-underline-offset: 0.2em; }
 
 img { max-width: 100%; display: block; }
 
@@ -138,7 +163,7 @@ img { max-width: 100%; display: block; }
   justify-content: center;
   gap: 0.45em;
   min-height: 44px;
-  padding: 0.55em 1.1em;
+  padding: 0.55em 1.15em;
   border: 1.5px solid transparent;
   border-radius: 999px;
   background: var(--accion);
@@ -147,17 +172,17 @@ img { max-width: 100%; display: block; }
   text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
-  transition: filter 0.15s;
+  transition: filter 0.15s, background-color 0.15s;
 }
-.boton:hover { filter: brightness(1.08); }
+.boton:hover { filter: brightness(1.1); }
 .boton:disabled { opacity: 0.6; cursor: progress; }
 
-.boton.secundario { background: transparent; color: var(--accion); border-color: currentColor; }
+.boton.secundario { background: transparent; color: var(--enlace, var(--accion)); border-color: currentColor; }
 .boton.discreto { background: transparent; color: var(--texto-suave); padding-inline: 0.6em; }
 .boton.discreto:hover { color: var(--texto); filter: none; }
 .boton.peligro { background: var(--peligro); color: #fff; }
 .boton.peligro.secundario { background: transparent; color: var(--peligro); }
-.boton.pequeno { min-height: 36px; padding: 0.35em 0.85em; font-size: var(--t-sm); }
+.boton.pequeno { min-height: 36px; padding: 0.35em 0.9em; font-size: var(--t-sm); }
 
 /* ---------------------------------------------------------------- formularios */
 
@@ -169,7 +194,7 @@ img { max-width: 100%; display: block; }
   font-size: var(--t-sm);
 }
 
-.campo .ayuda { font-size: var(--t-sm); color: var(--texto-suave); }
+.campo .ayuda, .ayuda { font-size: var(--t-sm); color: var(--texto-suave); }
 
 input[type="text"], input[type="password"], input[type="email"], input[type="url"],
 input[type="date"], input[type="time"], input[type="search"], select, textarea {
@@ -183,11 +208,13 @@ input[type="date"], input[type="time"], input[type="search"], select, textarea {
   font: inherit;
 }
 textarea { min-height: 7em; resize: vertical; line-height: 1.5; }
-input:focus, select:focus, textarea:focus { border-color: var(--accion); outline: none; box-shadow: 0 0 0 3px var(--accion-suave); }
+input:focus, select:focus, textarea:focus { border-color: var(--enlace, var(--accion)); outline: none; box-shadow: 0 0 0 3px var(--accion-suave); }
 input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--peligro); }
 
 .casilla { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; cursor: pointer; }
 .casilla input { width: 1.25rem; height: 1.25rem; accent-color: var(--accion); }
+
+.fila-etiqueta { display: flex; align-items: center; justify-content: space-between; }
 
 .aviso-error {
   padding: 0.75rem 1rem;
@@ -196,6 +223,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
   color: var(--peligro);
   font-weight: 700;
 }
+.aviso-error a { color: inherit; }
 .aviso-error ul { margin: 0.4rem 0 0; padding-left: 1.2rem; font-weight: 400; }
 
 /* ---------------------------------------------------------------- diálogos */
@@ -208,10 +236,11 @@ dialog {
   border-radius: var(--radio-m);
   background: var(--superficie);
   color: var(--texto);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 }
-dialog::backdrop { background: rgba(15, 21, 48, 0.55); }
+dialog::backdrop { background: rgba(14, 10, 36, 0.7); }
 dialog.ancho { width: min(820px, calc(100vw - 24px)); }
+.tema-espacio dialog { border: 1px solid var(--linea); }
 
 .dialogo-cuerpo { padding: 1.5rem; display: grid; gap: 1rem; }
 .dialogo-cuerpo h2 { font-size: var(--t-xl); }
@@ -232,85 +261,130 @@ dialog.ancho { width: min(820px, calc(100vw - 24px)); }
 .tostada {
   padding: 0.8rem 1rem;
   border-radius: var(--radio-s);
-  background: var(--noche);
-  color: #fff;
-  box-shadow: var(--sombra);
+  background: var(--nebulosa-2);
+  color: var(--estrella);
+  border: 1px solid #3d2f86;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   font-weight: 700;
 }
-.tostada.error { background: var(--alerta); }
+.tostada.error { background: var(--marte); border-color: var(--marte); color: #fff; }
 
 @media (prefers-reduced-motion: no-preference) {
   .tostada { animation: tostada-entra 0.2s ease-out; }
   @keyframes tostada-entra { from { opacity: 0; transform: translateY(8px); } }
 }
 
+/* ---------------------------------------------------------------- marca del evento (como en los pósters) */
+
+.lockup { display: grid; gap: 0; font-family: var(--familia-titulo); line-height: 0.9; }
+.lockup-nasa { color: var(--marte-claro); font-weight: 800; font-size: 0.42em; letter-spacing: 0.06em; }
+.lockup-space { color: #fff; font-weight: 800; font-size: 1em; text-transform: uppercase; letter-spacing: 0.01em; }
+
+.pin { display: inline-flex; align-items: center; gap: 0.4em; font-weight: 700; }
+.pin svg { width: 0.9em; height: 1.2em; flex: none; }
+.pin svg path { fill: var(--marte-claro); }
+
 /* ---------------------------------------------------------------- pantalla de ingreso (compartida) */
 
 .ingreso {
+  position: relative;
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
   grid-template-columns: 1fr;
-  background: var(--noche);
-  color: #fff;
+  background: var(--cosmos);
+  color: var(--estrella);
+  overflow: hidden;
 }
 
 .ingreso-arte {
   position: relative;
-  overflow: hidden;
-  padding: 2rem var(--margen) 1rem;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  min-height: 34vh;
+  justify-content: flex-start;
+  min-height: 62vh;
+  padding: 2.25rem var(--margen) 8rem;
+  overflow: hidden;
 }
 
-.ingreso-arte svg.espiral {
+/* En el celular la escena se centra en el planeta y la órbita (x≈900 de 1600). */
+.ingreso svg.cielo {
   position: absolute;
-  right: -18%;
-  top: -10%;
-  width: 115%;
-  max-width: 760px;
-  opacity: 0.95;
+  left: 50%;
+  bottom: 0;
+  height: 100%;
+  width: auto;
+  min-width: 100%;
+  transform: translateX(-50%);
   pointer-events: none;
 }
+@media (max-width: 899px) {
+  .ingreso .cielo .orbita { opacity: 0.6; }
+}
 
-.ingreso-marca { position: relative; display: grid; gap: 0.6rem; max-width: 30ch; }
-.ingreso-marca .organiza { color: #c9d0ec; font-size: var(--t-sm); }
-.ingreso-marca h1 { font-size: var(--t-2xl); font-weight: 800; }
+.ingreso-marca { position: relative; z-index: 1; display: grid; gap: 0.9rem; max-width: 34rem; }
+.ingreso-marca .lockup { font-size: clamp(3.2rem, 15vw, 6.5rem); }
+.ingreso-marca .pin { font-size: var(--t-lg); }
+.ingreso-marca h1 { font-size: var(--t-xl); font-weight: 700; margin-top: 0.4rem; }
+.ingreso-marca .eslogan { color: #d9d2fb; font-size: var(--t-md); max-width: 30ch; }
+.ingreso-marca .fechas { color: #b8b0dc; font-size: var(--t-sm); }
 
 .ingreso-formulario {
-  background: var(--fondo);
-  color: var(--texto);
-  padding: 2rem var(--margen) 3rem;
+  position: relative;
+  z-index: 1;
+  padding: 0 var(--margen) 3rem;
+  margin-top: -3.5rem;
   display: flex;
   justify-content: center;
 }
-.ingreso-formulario form { width: 100%; max-width: 380px; display: grid; gap: 1rem; align-content: start; }
+.ingreso-formulario form {
+  width: 100%;
+  max-width: 400px;
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+  padding: 1.5rem;
+  border-radius: var(--radio-m);
+  background: rgba(26, 20, 66, 0.92);
+  border: 1px solid rgba(185, 166, 255, 0.22);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
 .ingreso-formulario h2 { font-size: var(--t-xl); }
-.fila-etiqueta { display: flex; align-items: center; justify-content: space-between; }
 .ingreso-formulario button[type="submit"] { width: 100%; margin-top: 0.4rem; }
 .ingreso-formulario .campo + .campo { margin-top: 0; }
 .ingreso-formulario .fila-etiqueta .boton { min-height: 32px; margin-right: -0.6em; }
 .ingreso-formulario .nota { font-size: var(--t-sm); color: var(--texto-suave); }
 
-@media (min-width: 860px) {
-  .ingreso { grid-template-columns: 1.15fr 1fr; }
-  .ingreso-arte { padding: 3.5rem; min-height: 100vh; }
-  .ingreso-arte svg.espiral { right: -12%; top: 6%; width: 100%; }
-  .ingreso-marca h1 { font-size: var(--t-3xl); }
-  .ingreso-formulario { align-items: center; padding: 3rem; }
+@supports (backdrop-filter: blur(1px)) {
+  .ingreso-formulario form { background: rgba(26, 20, 66, 0.72); backdrop-filter: blur(14px); }
 }
 
-/* puntadas de la espiral: el trazo se "borda" una sola vez al cargar */
-.espiral .puntada { fill: none; stroke: var(--hilo); stroke-width: 2.2; stroke-dasharray: 7 6; stroke-linecap: round; }
-.espiral .orbita-fina { fill: none; stroke: rgba(255, 255, 255, 0.14); stroke-width: 1; }
-.espiral .astro { fill: var(--hilo); }
-.espiral .astro.frio { fill: #8fa1ff; }
+@media (min-width: 900px) {
+  /* Escena completa: título a la izquierda, planeta y órbita al centro, formulario a la derecha. */
+  .ingreso svg.cielo { left: 0; transform: none; }
+  .ingreso { grid-template-columns: minmax(0, 1fr) minmax(360px, 420px); align-items: center; }
+  .ingreso-arte { position: static; min-height: 100vh; justify-content: center; padding: 3rem 3rem 12rem 4rem; }
+  .ingreso-marca .lockup { font-size: clamp(5rem, 8vw, 7.5rem); }
+  .ingreso-marca h1 { font-size: var(--t-2xl); }
+  .ingreso-marca .eslogan { font-size: var(--t-lg); }
+  .ingreso-formulario { margin: 0; padding: 2rem 4rem 6rem 0; justify-content: flex-end; }
+}
+
+/* La órbita (espiral de Fibonacci) se dibuja una sola vez al cargar. */
+.cielo .orbita-trazo {
+  fill: none;
+  stroke: var(--lavanda);
+  stroke-width: 2.4;
+  stroke-dasharray: 8 7;
+  stroke-linecap: round;
+  opacity: 0.9;
+}
+.cielo .astro { fill: #fff; }
+.cielo .astro.frio { fill: var(--lavanda); }
 
 @media (prefers-reduced-motion: no-preference) {
-  .espiral .bordado { stroke-dasharray: 2200; stroke-dashoffset: 2200; animation: bordar 2.4s 0.2s ease-out forwards; }
-  @keyframes bordar { to { stroke-dashoffset: 0; } }
+  .cielo .orbita-revela { stroke-dasharray: 2600; stroke-dashoffset: 2600; animation: orbita-revela 2.6s 0.3s ease-out forwards; }
+  @keyframes orbita-revela { to { stroke-dashoffset: 0; } }
 }
 
 /* ---------------------------------------------------------------- utilidades */
@@ -327,4 +401,44 @@ dialog.ancho { width: min(820px, calc(100vw - 24px)); }
   border-radius: var(--radio-m);
   color: var(--texto-suave);
   text-align: center;
+}
+
+/* ---------------------------------------------------------------- logo del evento
+   Va siempre sobre un recuadro claro: así cualquier logo (oscuro o de color) se
+   lee bien sobre el cielo nocturno. */
+
+.placa-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  border-radius: var(--radio-s);
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(185, 166, 255, 0.35), 0 6px 18px rgba(14, 10, 36, 0.35);
+}
+.placa-logo img { display: block; width: auto; height: auto; max-height: 30px; max-width: 150px; object-fit: contain; }
+
+.ingreso-logo { justify-self: start; padding: 8px 14px; }
+.ingreso-logo img { max-height: 54px; max-width: 220px; }
+@media (min-width: 860px) {
+  .ingreso-logo img { max-height: 64px; max-width: 260px; }
+}
+
+/* Logos de aliados: mismo recuadro claro, tamaño fijo para que la rejilla quede pareja. */
+.placa-aliado {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 92px;
+  padding: 12px 14px;
+  border-radius: var(--radio-s);
+  background: #ffffff;
+  overflow: hidden;
+}
+.placa-aliado img { max-width: 100%; max-height: 66px; object-fit: contain; }
+.placa-aliado .solo-nombre {
+  color: #1d1640;
+  font: 800 var(--t-md)/1.15 var(--familia-titulo);
+  text-align: center;
+  overflow-wrap: anywhere;
 }

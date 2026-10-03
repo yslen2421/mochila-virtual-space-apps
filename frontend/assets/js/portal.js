@@ -17,6 +17,7 @@
   /* ---------------------------------------------------------------- arranque */
 
   async function iniciar() {
+    estado.marca = await cargarMarca(api);
     if (!sesion.token) return mostrarIngreso();
     try {
       estado.usuario = (await api.pedir("/auth/yo")).usuario;
@@ -32,10 +33,11 @@
     estado.indice = null;
     document.title = "Mochila virtual — NASA Space Apps San Vicente Ferrer";
     vaciar(app, pantallaIngreso({
-      titulo: "Tu mochila para el NASA Space Apps Challenge",
+      titulo: "Tu mochila virtual",
       subtitulo: "Entra a tu mochila",
       nota: "Recibiste tu usuario y contraseña de la organización. Si no los tienes o los olvidaste, escríbele al equipo de Ola Fibonacci.",
       enlace: { texto: "¿Eres del equipo organizador? Entra al panel de organización", href: "admin/" },
+      logo: logoDeMarca(estado.marca),
       mensajeInicial: mensaje,
       alEntrar: async (usuario, contrasena) => {
         const r = await api.pedir("/auth/login", { metodo: "POST", cuerpo: { usuario, contrasena } });
@@ -60,7 +62,8 @@
       banda(),
       principal,
       h("footer", { class: "pie" }, h("div", { class: "contenedor" },
-        "NASA Space Apps Challenge, sede San Vicente Ferrer. Organiza Ola Fibonacci, mujeres en ciencia.")));
+        h("p", { class: "eslogan" }, "La próxima frontera, donde tus ideas nos llevarán más lejos."),
+        h("p", {}, "NASA Space Apps Challenge, sede San Vicente Ferrer. Organiza Ola Fibonacci, mujeres en ciencia."))));
     enrutar();
   }
 
@@ -78,8 +81,12 @@
     menuAbierto = menu;
     return h("header", { class: "banda" }, h("div", { class: "contenedor" },
       h("a", { class: "marca", href: "#/" },
-        h("img", { src: "assets/img/insignia.svg", alt: "" }),
-        h("span", {}, "Mochila virtual", h("small", {}, "Space Apps San Vicente Ferrer"))),
+        logoDeMarca(estado.marca)
+          ? h("span", { class: "placa-logo" }, h("img", { src: logoDeMarca(estado.marca), alt: "Logo del evento" }))
+          : h("img", { src: "assets/img/insignia.svg", alt: "" }),
+        h("span", { class: "marca-texto" },
+          h("strong", {}, "Mochila virtual"),
+          h("small", {}, h("b", {}, "NASA"), " Space Apps San Vicente Ferrer"))),
       menu));
   }
 
@@ -106,14 +113,17 @@
     document.title = "Mochila virtual — NASA Space Apps San Vicente Ferrer";
     const zonaProximo = h("div");
     const zonaFaja = h("div", { class: "cargando" }, "Cargando secciones…");
-    vaciar(principal, h("div", { class: "contenedor inicio" },
-      h("section", { class: "saludo" },
-        h("h1", {}, `Hola, ${estado.usuario.nombre.split(" ")[0]}.`),
-        h("p", {}, "Aquí está todo lo del hackathon: horarios, enlaces, guías y descargas. Es lo mismo si vienes a la sede o te conectas desde casa.")),
+    vaciar(principal,
+      h("section", { class: "portada" }, h("div", { class: "contenedor" },
+        h("div", { class: "saludo" },
+          h("h1", {}, `Hola, ${estado.usuario.nombre.split(" ")[0]}.`),
+          h("p", {}, "Aquí está todo lo del hackathon: horarios, enlaces, guías y descargas. Es lo mismo si vienes a la sede o te conectas desde casa.")))),
+      h("div", { class: "contenedor inicio" },
       zonaProximo,
       h("section", { class: "faja", "aria-labelledby": "titulo-faja" },
         h("h2", { id: "titulo-faja" }, "Tu mochila"),
-        zonaFaja)));
+        zonaFaja),
+      seccionAliados()));
 
     cargarProximos(zonaProximo);
     estado.temporizador = setInterval(() => cargarProximos(zonaProximo), 60000);
@@ -135,6 +145,28 @@
     } catch (error) {
       vaciar(zonaFaja, bloqueError(error));
     }
+  }
+
+  /** Organizadores, patrocinadores, divulgadores… Los grupos vacíos ya vienen filtrados. */
+  function seccionAliados() {
+    const grupos = (estado.marca && estado.marca.grupos) || [];
+    if (!grupos.length) return null;
+    return h("section", { class: "aliados", "aria-labelledby": "titulo-aliados" },
+      h("h2", { id: "titulo-aliados" }, "Hacen posible este evento"),
+      grupos.map((g) => h("div", { class: "grupo-aliados" },
+        h("h3", {}, g.titulo),
+        h("ul", { class: "logos-aliados" }, g.aliados.map((a) => {
+          const contenido = [
+            h("span", { class: "placa-aliado" },
+              a.logo ? h("img", { src: `${a.logo.url}?miniatura=1`, alt: a.nombre, loading: "lazy", decoding: "async" })
+                : h("span", { class: "solo-nombre" }, a.nombre)),
+            a.logo && h("span", { class: "nombre-aliado" }, a.nombre),  // sin logo, el nombre ya va en el recuadro
+          ];
+          const url = urlSegura(a.url);
+          return h("li", {}, url
+            ? h("a", { class: "aliado", href: url, target: "_blank", rel: "noopener noreferrer" }, contenido)
+            : h("div", { class: "aliado" }, contenido));
+        })))));
   }
 
   function parche(seccion, posicion) {
@@ -173,9 +205,10 @@
 
   async function vistaSeccion(id) {
     const contenido = h("div", { class: "cargando" }, "Abriendo la sección…");
-    vaciar(principal, h("div", { class: "contenedor vista-seccion" },
-      h("a", { class: "volver", href: "#/" }, "‹ Volver a la mochila"),
-      contenido));
+    const zonaCabecera = h("div", { class: "contenedor" }, h("a", { class: "volver", href: "#/" }, "‹ Volver a la mochila"));
+    vaciar(principal,
+      h("div", { class: "cabecera-banda" }, zonaCabecera),
+      h("div", { class: "contenedor vista-seccion" }, contenido));
     try {
       const { seccion } = await api.pedir(`/mochila/secciones/${id}`);
       document.title = `${seccion.titulo} — Mochila virtual`;
@@ -183,7 +216,8 @@
         parche(seccion),
         h("div", {}, h("h1", {}, seccion.titulo), seccion.descripcion && h("p", {}, seccion.descripcion)));
       const bloques = h("div", { class: "bloques" }, construirBloques(seccion.items));
-      contenido.replaceWith(cabecera, bloques);
+      zonaCabecera.append(cabecera);
+      contenido.replaceWith(bloques);
       principal.focus({ preventScroll: true });
     } catch (error) {
       vaciar(contenido, bloqueError(error));

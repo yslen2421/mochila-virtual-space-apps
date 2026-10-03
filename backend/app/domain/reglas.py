@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from typing import Callable
 
-from .entidades import Item, Seccion, TipoItem
+from .entidades import Aliado, GrupoAliados, Item, Seccion, TipoItem
 from .errores import ErrorValidacion
 
 PATRON_USUARIO = re.compile(r"^[a-z0-9._-]{3,40}$")
@@ -118,3 +118,22 @@ def validar_reorden(ids_actuales: list[int], ids_nuevos: list[int]) -> None:
             "El nuevo orden debe incluir exactamente los mismos elementos, sin repetir.",
             {"esperados": sorted(ids_actuales)},
         )
+
+
+def validar_grupo_aliados(grupo: GrupoAliados) -> None:
+    grupo.titulo = grupo.titulo.strip()
+    if not grupo.titulo:
+        raise ErrorValidacion("El grupo necesita un nombre.", {"campo": "titulo"})
+    if len(grupo.titulo) > 80:
+        raise ErrorValidacion("El nombre del grupo no puede superar 80 caracteres.", {"campo": "titulo"})
+
+
+def validar_aliado(aliado: Aliado) -> None:
+    aliado.nombre = aliado.nombre.strip()
+    aliado.url = aliado.url.strip()
+    if not aliado.nombre:
+        raise ErrorValidacion("Escribe el nombre de la organización.", {"campo": "nombre"})
+    if len(aliado.nombre) > 120:
+        raise ErrorValidacion("El nombre no puede superar 120 caracteres.", {"campo": "nombre"})
+    if aliado.url and not _url_valida(aliado.url):
+        raise ErrorValidacion("El enlace debe empezar por https:// o http://", {"campo": "url"})

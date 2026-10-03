@@ -4,7 +4,11 @@
 
 .fila-etiqueta { display: flex; align-items: center; justify-content: space-between; }
 
-.banda-admin { background: var(--noche); color: #fff; }
+.banda-admin {
+  background: url("../img/estrellas.svg") top left / 600px 600px repeat, var(--cosmos);
+  color: #fff;
+  border-bottom: 3px solid var(--cordillera);
+}
 .banda-admin .contenedor {
   max-width: 1280px;
   display: flex;
@@ -14,8 +18,8 @@
   min-height: 60px;
   padding-block: 0.4rem;
 }
-.banda-admin .marca { display: flex; align-items: center; gap: 0.6rem; font: 800 var(--t-md)/1.1 var(--familia-titulo); }
-.banda-admin .marca img { width: 28px; height: 28px; }
+.banda-admin .marca { display: flex; align-items: center; gap: 0.6rem; font: 800 var(--t-lg)/1.1 var(--familia-titulo); letter-spacing: 0.01em; }
+.banda-admin .marca img { width: 32px; height: 32px; }
 .pestanas { display: flex; gap: 0.25rem; flex: 1; overflow-x: auto; }
 .pestanas button {
   min-height: 44px;
@@ -23,18 +27,18 @@
   border: 0;
   border-radius: 999px;
   background: none;
-  color: #c9d0ec;
+  color: #c9c1ef;
   font: 700 var(--t-sm) var(--familia-texto);
   cursor: pointer;
   white-space: nowrap;
 }
-.pestanas button[aria-selected="true"] { background: rgba(255, 255, 255, 0.14); color: #fff; }
+.pestanas button[aria-selected="true"] { background: var(--cordillera); color: #fff; }
 .banda-admin .acciones-banda { display: flex; align-items: center; gap: 0.5rem; font-size: var(--t-sm); }
 .banda-admin .acciones-banda a, .banda-admin .acciones-banda button { color: #fff; }
-.banda-admin .boton.discreto { color: #c9d0ec; }
+.banda-admin .boton.discreto { color: #c9c1ef; }
 
 .panel { max-width: 1280px; padding-block: 1.5rem 4rem; }
-.panel > h1 { font-size: var(--t-2xl); margin-bottom: 0.3rem; }
+.panel > h1 { font-size: var(--t-3xl); font-weight: 800; margin-bottom: 0.3rem; }
 .panel > .intro { color: var(--texto-suave); margin-bottom: 1.5rem; max-width: 70ch; }
 
 .tarjeta {
@@ -193,7 +197,7 @@ tr.inactivo td { opacity: 0.6; }
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
-.nota-importante { padding: 0.75rem 1rem; border-left: 4px solid var(--hilo); background: var(--superficie-2); border-radius: 0 var(--radio-s) var(--radio-s) 0; }
+.nota-importante { padding: 0.75rem 1rem; border-left: 4px solid var(--marte); background: var(--superficie-2); border-radius: 0 var(--radio-s) var(--radio-s) 0; }
 
 /* ---------------------------------------------------------------- estadísticas */
 
@@ -212,7 +216,7 @@ tr.inactivo td { opacity: 0.6; }
 .barra .encabezado strong { overflow-wrap: anywhere; }
 .barra .pista { height: 10px; border-radius: 5px; background: var(--superficie-2); overflow: hidden; }
 .barra .relleno { display: block; height: 100%; border-radius: 5px; background: var(--accion); }
-.barra .relleno.hilo { background: var(--hilo); }
+.barra .relleno.hilo { background: var(--marte); }
 
 /* ---------------------------------------------------------------- ajustes */
 
@@ -224,3 +228,79 @@ tr.inactivo td { opacity: 0.6; }
   .banda-admin .acciones-banda { margin-left: auto; }
   td[data-etiqueta]::before { content: attr(data-etiqueta) ": "; color: var(--texto-suave); }
 }
+
+/* ---------------------------------------------------------------- logos y aliados */
+
+.editor-marca { display: grid; gap: 1.25rem; align-items: start; }
+@media (min-width: 1000px) { .editor-marca { grid-template-columns: 340px 1fr; } }
+.bloque-marca { padding: 1.25rem; display: grid; gap: 1rem; align-content: start; }
+.bloque-marca h2 { font-size: var(--t-xl); }
+.bloque-marca .ayuda { font-size: var(--t-sm); color: var(--texto-suave); }
+
+.vista-logo {
+  display: grid;
+  place-items: center;
+  min-height: 130px;
+  padding: 1.25rem;
+  border-radius: var(--radio-s);
+  background: linear-gradient(160deg, #1a1442, #2c1d6b);
+}
+.vista-logo .placa-logo img { max-height: 70px; max-width: 240px; }
+.vista-logo .sin-logo { color: #d9d2fb; text-align: center; font-size: var(--t-sm); max-width: 28ch; }
+
+.cabeza-marca { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: space-between; align-items: center; }
+
+.grupo-admin { display: grid; gap: 0.85rem; padding-top: 1.1rem; border-top: 1px solid var(--linea); }
+.grupo-cabeza { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; justify-content: space-between; align-items: center; }
+.grupo-cabeza h3 { font-size: var(--t-lg); }
+.grupo-cabeza .meta { font: 400 var(--t-sm) var(--familia-texto); color: var(--texto-suave); }
+.grupo-cabeza .controles { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem; }
+
+.logos-admin {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.9rem;
+}
+.aliado-admin { display: grid; gap: 0.35rem; align-content: start; }
+.aliado-admin .placa-aliado { height: 84px; box-shadow: 0 0 0 1px var(--linea); }
+.aliado-admin .nombre-aliado { font-weight: 700; font-size: var(--t-sm); text-align: center; overflow-wrap: anywhere; }
+.controles-aliado { display: flex; justify-content: center; align-items: center; gap: 0.1rem; }
+.controles-aliado .flecha {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--radio-s);
+  background: none;
+  color: var(--texto-suave);
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+.controles-aliado .flecha:hover:not(:disabled) { background: var(--superficie-2); color: var(--texto); }
+.controles-aliado .flecha:disabled { opacity: 0.25; cursor: default; }
+
+.agregar-aliado {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.2rem;
+  width: 100%;
+  height: 84px;
+  border: 2px dashed var(--linea);
+  border-radius: var(--radio-s);
+  background: none;
+  color: var(--accion);
+  font: 700 var(--t-sm) var(--familia-texto);
+  cursor: pointer;
+}
+.agregar-aliado:hover { border-color: var(--accion); background: var(--accion-suave); }
+.agregar-aliado .mas { font-size: 1.4rem; line-height: 1; }
+
+.zona-logo-aliado { display: grid; grid-template-columns: 170px 1fr; gap: 1rem; align-items: center; }
+.zona-logo-aliado .placa-aliado { box-shadow: 0 0 0 1px var(--linea); }
+.acciones-logo { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.acciones-logo .barra-progreso { flex-basis: 100%; }
+@media (max-width: 520px) { .zona-logo-aliado { grid-template-columns: 1fr; } }
+.dialogo-acciones .separar-izq { margin-right: auto; }

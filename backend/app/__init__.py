@@ -40,6 +40,7 @@ def create_app(config: Configuracion | None = None) -> Flask:
              allow_headers=["Authorization", "Content-Type"], max_age=600)
 
     app.extensions["contenedor"] = construir(config)
+    app.extensions["contenedor"].marca.asegurar_grupos_base()
     app.register_blueprint(api)
     registrar_manejadores(app)
 

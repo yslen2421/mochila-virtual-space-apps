@@ -24,6 +24,7 @@
   /* ---------------------------------------------------------------- arranque y sesión */
 
   async function iniciar() {
+    estado.logoUrl = logoDeMarca(await cargarMarca(api));
     if (!sesion.token) return mostrarIngreso();
     try {
       const { usuario } = await api.pedir("/auth/yo");
@@ -46,10 +47,11 @@
   function mostrarIngreso(mensaje) {
     estado.usuario = null;
     vaciar(app, pantallaIngreso({
-      titulo: "Panel de organización de la mochila virtual",
+      titulo: "Panel de organización",
       subtitulo: "Entra como Superadmin",
       nota: "Solo para el equipo organizador.",
       enlace: { texto: "¿Eres participante? Entra a tu mochila", href: URL_PORTAL },
+      logo: estado.logoUrl,
       mensajeInicial: mensaje,
       alEntrar: async (usuario, contrasena) => {
         const r = await api.pedir("/auth/login", { metodo: "POST", cuerpo: { usuario, contrasena } });
@@ -64,7 +66,7 @@
   /* ---------------------------------------------------------------- estructura */
 
   let principal;
-  const PESTANAS = [["contenido", "Contenido de la mochila"], ["participantes", "Participantes"], ["estadisticas", "Estadísticas"]];
+  const PESTANAS = [["contenido", "Contenido de la mochila"], ["marca", "Logos y aliados"], ["participantes", "Participantes"], ["estadisticas", "Estadísticas"]];
 
   function montar() {
     principal = h("main", { class: "contenedor panel", id: "principal" });
@@ -91,6 +93,7 @@
     estado.pestana = id;
     document.querySelectorAll(".pestanas button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.pestana === id)));
     if (id === "contenido") vistaContenido();
+    else if (id === "marca") vistaMarca();
     else if (id === "participantes") vistaParticipantes();
     else vistaEstadisticas();
   }
@@ -458,6 +461,277 @@
     document.getElementById("subir-varios").value = "";
     await refrescarSeccion();
     if (hechos) avisar(`${hechos} ${hechos === 1 ? "archivo agregado" : "archivos agregados"}`);
+    if (errores.length) avisar(`No se pudieron subir: ${errores.join("; ")}`, "error");
+  }
+
+  /* ================================================================ LOGOS Y ALIADOS */
+
+  let zonaLogo, zonaGrupos;
+
+  /** Un <label> con aspecto de botón que abre el selector de archivos (y responde al teclado). */
+  function botonArchivo(idEntrada, texto, clase = "boton secundario pequeno") {
+    return h("label", { for: idEntrada, class: clase, role: "button", tabindex: "0",
+      onkeydown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); document.getElementById(idEntrada).click(); } } },
+    texto);
+  }
+
+  async function vistaMarca() {
+    document.title = "Logos y aliados — Panel de organización";
+    zonaLogo = h("section", { class: "tarjeta bloque-marca", "aria-labelledby": "titulo-logo" }, h("p", { class: "cargando" }, "Cargando…"));
+    zonaGrupos = h("section", { class: "tarjeta bloque-marca", "aria-labelledby": "titulo-aliados" });
+    vaciar(principal,
+      h("h1", {}, "Logos y aliados"),
+      h("p", { class: "intro" }, "El logo del evento aparece arriba en el portal y en la pantalla de ingreso. Los aliados se muestran al final de la página de inicio de los participantes, por grupos. Un grupo sin aliados no se muestra."),
+      h("div", { class: "editor-marca" }, zonaLogo, zonaGrupos));
+    await recargarMarca();
+  }
+
+  async function recargarMarca() {
+    try {
+      estado.marca = await api.pedir("/admin/marca");
+    } catch (error) { vaciar(zonaLogo, bloqueError(error)); return; }
+    estado.logoUrl = logoDeMarca(estado.marca);
+    pintarLogo();
+    pintarGrupos();
+  }
+
+  async function subirImagen(archivo, barra) {
+    if (barra) { barra.hidden = false; barra.firstChild.style.setProperty("width", "0%"); }
+    try {
+      return (await api.subir("/admin/archivos", archivo,
+        (p) => barra && barra.firstChild.style.setProperty("width", `${Math.round(p * 100)}%`))).archivo;
+    } finally { if (barra) barra.hidden = true; }
+  }
+
+  function pintarLogo() {
+    const logo = estado.marca.logo;
+    const barra = h("div", { class: "barra-progreso", hidden: true }, h("span"));
+    const entrada = h("input", { type: "file", id: "subir-logo", class: "solo-lector", accept: "image/png,image/jpeg,image/svg+xml,image/webp",
+      onchange: async (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        try {
+          const archivo = await subirImagen(f, barra);
+          await api.pedir("/admin/marca/logo", { metodo: "PUT", cuerpo: { archivo_id: archivo.id } });
+          await recargarMarca();
+          avisar("Logo guardado. Ya se ve en el portal.");
+        } catch (error) { fallo(error); entrada.value = ""; }
+      } });
+    vaciar(zonaLogo,
+      h("h2", { id: "titulo-logo" }, "Logo del evento"),
+      h("div", { class: "vista-logo" },
+        logo ? h("span", { class: "placa-logo grande" }, h("img", { src: logo.url, alt: "Logo del evento" }))
+          : h("span", { class: "sin-logo" }, "Todavía no hay logo. Mientras tanto se muestra la insignia de la mochila.")),
+      barra,
+      h("p", { class: "ayuda" }, "Mejor en PNG o SVG con fondo transparente. En el portal va sobre un recuadro blanco, así se lee bien sobre la barra oscura."),
+      h("div", { class: "barra-acciones" },
+        entrada,
+        botonArchivo("subir-logo", logo ? "Cambiar logo" : "Subir logo", "boton pequeno"),
+        logo && h("button", { type: "button", class: "boton peligro secundario pequeno", onclick: quitarLogo }, "Quitar logo")));
+  }
+
+  async function quitarLogo() {
+    if (!await confirmar("Quitar logo", "El portal volverá a mostrar la insignia de la mochila en lugar del logo del evento.", { textoAceptar: "Quitar logo" })) return;
+    try {
+      await api.pedir("/admin/marca/logo", { metodo: "PUT", cuerpo: { archivo_id: null } });
+      await recargarMarca();
+      avisar("Logo quitado");
+    } catch (error) { fallo(error); }
+  }
+
+  function pintarGrupos() {
+    const grupos = estado.marca.grupos;
+    vaciar(zonaGrupos,
+      h("div", { class: "cabeza-marca" },
+        h("h2", { id: "titulo-aliados" }, "Aliados del evento"),
+        h("button", { type: "button", class: "boton pequeno", onclick: () => dialogoGrupo() }, "Nuevo grupo")),
+      grupos.length
+        ? grupos.map((g, i) => bloqueGrupo(g, i, grupos.length))
+        : h("p", { class: "vacio" }, "No hay grupos. Crea uno, por ejemplo Organizadores, Patrocinadores o Divulgadores."));
+  }
+
+  function bloqueGrupo(g, i, total) {
+    const idEntrada = `logos-grupo-${g.id}`;
+    const n = g.aliados.length;
+    const entrada = h("input", { type: "file", id: idEntrada, class: "solo-lector", multiple: true, accept: "image/*",
+      onchange: (e) => subirLogosAliados(g, [...e.target.files]) });
+    return h("div", { class: "grupo-admin" },
+      h("div", { class: "grupo-cabeza" },
+        h("h3", {}, g.titulo, " ", h("span", { class: "meta" }, n ? `${n} ${n === 1 ? "aliado" : "aliados"}` : "vacío, no se muestra")),
+        h("div", { class: "controles" },
+          h("span", { class: "mover" },
+            h("button", { type: "button", disabled: i === 0, "aria-label": `Subir el grupo ${g.titulo}`, onclick: () => moverGrupo(i, -1) }, "▲"),
+            h("button", { type: "button", disabled: i === total - 1, "aria-label": `Bajar el grupo ${g.titulo}`, onclick: () => moverGrupo(i, 1) }, "▼")),
+          h("button", { type: "button", class: "boton discreto pequeno", onclick: () => dialogoGrupo(g) }, "Renombrar"),
+          h("button", { type: "button", class: "boton peligro secundario pequeno", onclick: () => eliminarGrupo(g) }, "Eliminar grupo"))),
+      h("ul", { class: "logos-admin" },
+        g.aliados.map((a, k) => h("li", { class: "aliado-admin" },
+          h("span", { class: "placa-aliado" },
+            a.logo ? h("img", { src: `${a.logo.url}?miniatura=1`, alt: "" }) : h("span", { class: "solo-nombre" }, a.nombre)),
+          a.logo && h("span", { class: "nombre-aliado" }, a.nombre),
+          h("span", { class: "controles-aliado" },
+            h("button", { type: "button", class: "flecha", disabled: k === 0, "aria-label": `Mover ${a.nombre} antes`, onclick: () => moverAliado(g, k, -1) }, "‹"),
+            h("button", { type: "button", class: "boton discreto pequeno", onclick: () => dialogoAliado(g, a) }, "Editar"),
+            h("button", { type: "button", class: "flecha", disabled: k === n - 1, "aria-label": `Mover ${a.nombre} después`, onclick: () => moverAliado(g, k, 1) }, "›")))),
+        h("li", { class: "aliado-admin" },
+          h("button", { type: "button", class: "agregar-aliado", onclick: () => dialogoAliado(g) },
+            h("span", { class: "mas", "aria-hidden": "true" }, "+"), "Agregar aliado"))),
+      h("div", { class: "barra-acciones" },
+        entrada,
+        botonArchivo(idEntrada, "Subir varios logos"),
+        h("span", { class: "ayuda" }, "Cada imagen se vuelve un aliado con el nombre del archivo; después puedes editarlo.")));
+  }
+
+  function dialogoGrupo(grupo) {
+    const zonaError = h("div");
+    const titulo = h("input", { type: "text", id: "g-titulo", maxlength: "80", valor: grupo ? grupo.titulo : "",
+      placeholder: "Por ejemplo: Aliados académicos" });
+    const dialogo = abrirDialogo(h("form", { class: "dialogo-cuerpo", novalidate: true,
+      onsubmit: async (e) => {
+        e.preventDefault();
+        vaciar(zonaError);
+        try {
+          if (grupo) await api.pedir(`/admin/aliados/grupos/${grupo.id}`, { metodo: "PUT", cuerpo: { titulo: titulo.value } });
+          else await api.pedir("/admin/aliados/grupos", { metodo: "POST", cuerpo: { titulo: titulo.value } });
+          dialogo.close();
+          await recargarMarca();
+          avisar(grupo ? "Grupo renombrado" : "Grupo creado");
+        } catch (error) { zonaError.append(bloqueError(error)); }
+      } },
+      h("h2", {}, grupo ? "Renombrar grupo" : "Nuevo grupo"),
+      zonaError,
+      h("div", { class: "campo" }, h("label", { for: "g-titulo" }, "Nombre del grupo"), titulo),
+      h("div", { class: "dialogo-acciones" },
+        h("button", { type: "button", class: "boton discreto", onclick: () => dialogo.close() }, "Cancelar"),
+        h("button", { type: "submit", class: "boton" }, grupo ? "Guardar nombre" : "Crear grupo"))));
+    titulo.focus();
+  }
+
+  async function eliminarGrupo(g) {
+    const n = g.aliados.length;
+    const detalle = n ? `Se borrarán también sus ${n} ${n === 1 ? "aliado" : "aliados"} y sus logos.` : "El grupo está vacío.";
+    if (!await confirmar("Eliminar grupo", `¿Eliminar "${g.titulo}"? ${detalle}`)) return;
+    try {
+      await api.pedir(`/admin/aliados/grupos/${g.id}`, { metodo: "DELETE" });
+      await recargarMarca();
+      avisar("Grupo eliminado");
+    } catch (error) { fallo(error); }
+  }
+
+  async function moverGrupo(i, delta) {
+    const ids = estado.marca.grupos.map((g) => g.id);
+    [ids[i], ids[i + delta]] = [ids[i + delta], ids[i]];
+    try {
+      await api.pedir("/admin/aliados/grupos/orden", { metodo: "PUT", cuerpo: { ids } });
+      await recargarMarca();
+    } catch (error) { fallo(error); }
+  }
+
+  async function moverAliado(g, k, delta) {
+    const ids = g.aliados.map((a) => a.id);
+    [ids[k], ids[k + delta]] = [ids[k + delta], ids[k]];
+    try {
+      await api.pedir(`/admin/aliados/grupos/${g.id}/aliados/orden`, { metodo: "PUT", cuerpo: { ids } });
+      await recargarMarca();
+    } catch (error) { fallo(error); }
+  }
+
+  function dialogoAliado(g, aliado) {
+    const editando = Boolean(aliado);
+    let archivoId = null;
+    let quitarLogo = false;
+    let subiendo = false;
+    const zonaError = h("div");
+    const nombre = h("input", { type: "text", id: "a-nombre", maxlength: "120", valor: aliado ? aliado.nombre : "" });
+    const url = h("input", { type: "url", id: "a-url", inputmode: "url", placeholder: "https://", valor: aliado ? aliado.url : "" });
+    const vista = h("span", { class: "placa-aliado" });
+    const barra = h("div", { class: "barra-progreso", hidden: true }, h("span"));
+    const botonQuitar = h("button", { type: "button", class: "boton peligro secundario pequeno",
+      onclick: () => { quitarLogo = true; archivoId = null; mostrarVista(null); } }, "Quitar logo");
+
+    function mostrarVista(src) {
+      vaciar(vista, src ? h("img", { src, alt: "" }) : h("span", { class: "solo-nombre" }, "Sin logo: se mostrará el nombre"));
+      botonQuitar.hidden = !src;
+    }
+    mostrarVista(aliado && aliado.logo ? `${aliado.logo.url}?miniatura=1` : null);
+
+    const entrada = h("input", { type: "file", id: "a-logo", class: "solo-lector", accept: "image/*",
+      onchange: async (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        subiendo = true;
+        guardar.disabled = true;
+        try {
+          const archivo = await subirImagen(f, barra);
+          archivoId = archivo.id;
+          quitarLogo = false;
+          mostrarVista(URL.createObjectURL(f));
+          if (!nombre.value.trim()) nombre.value = tituloDesdeArchivo(f.name);
+        } catch (error) { vaciar(zonaError, bloqueError(error)); }
+        finally { subiendo = false; guardar.disabled = false; entrada.value = ""; }
+      } });
+    const guardar = h("button", { type: "submit", class: "boton" }, editando ? "Guardar cambios" : "Agregar aliado");
+
+    const dialogo = abrirDialogo(h("form", { class: "dialogo-cuerpo", novalidate: true,
+      onsubmit: async (e) => {
+        e.preventDefault();
+        if (subiendo) return;
+        vaciar(zonaError);
+        const cuerpo = { nombre: nombre.value, url: url.value.trim() };
+        if (archivoId) cuerpo.archivo_id = archivoId;
+        else if (quitarLogo) cuerpo.archivo_id = null;
+        try {
+          if (editando) await api.pedir(`/admin/aliados/${aliado.id}`, { metodo: "PUT", cuerpo });
+          else await api.pedir(`/admin/aliados/grupos/${g.id}/aliados`, { metodo: "POST", cuerpo });
+          dialogo.close();
+          await recargarMarca();
+          avisar(editando ? "Cambios guardados" : "Aliado agregado");
+        } catch (error) { zonaError.append(bloqueError(error)); }
+      } },
+      h("h2", {}, editando ? `Editar aliado` : `Agregar a ${g.titulo}`),
+      zonaError,
+      h("div", { class: "zona-logo-aliado" },
+        vista,
+        h("div", { class: "acciones-logo" },
+          entrada,
+          botonArchivo("a-logo", aliado && aliado.logo ? "Cambiar logo" : "Subir logo"),
+          botonQuitar,
+          barra)),
+      h("div", { class: "campo" }, h("label", { for: "a-nombre" }, "Nombre de la organización"), nombre),
+      h("div", { class: "campo" }, h("label", { for: "a-url" }, "Página web o red social (opcional)"), url,
+        h("span", { class: "ayuda" }, "Si la pones, el logo será un enlace en el portal.")),
+      h("div", { class: "dialogo-acciones" },
+        editando && h("button", { type: "button", class: "boton peligro secundario pequeno separar-izq",
+          onclick: async () => { dialogo.close(); await eliminarAliado(aliado); } }, "Eliminar aliado"),
+        h("button", { type: "button", class: "boton discreto", onclick: () => dialogo.close() }, "Cancelar"),
+        guardar)));
+    nombre.focus();
+  }
+
+  async function eliminarAliado(a) {
+    if (!await confirmar("Eliminar aliado", `¿Quitar a "${a.nombre}" de la página? Esta acción no se puede deshacer.`)) return;
+    try {
+      await api.pedir(`/admin/aliados/${a.id}`, { metodo: "DELETE" });
+      await recargarMarca();
+      avisar("Aliado eliminado");
+    } catch (error) { fallo(error); }
+  }
+
+  async function subirLogosAliados(g, archivos) {
+    if (!archivos.length) return;
+    avisar(`Subiendo ${archivos.length} ${archivos.length === 1 ? "logo" : "logos"}…`);
+    let hechos = 0;
+    const errores = [];
+    for (const f of archivos) {
+      try {
+        const archivo = await subirImagen(f);
+        await api.pedir(`/admin/aliados/grupos/${g.id}/aliados`, { metodo: "POST",
+          cuerpo: { nombre: tituloDesdeArchivo(f.name), archivo_id: archivo.id } });
+        hechos++;
+      } catch (error) { errores.push(`${f.name}: ${error.message}`); }
+    }
+    await recargarMarca();
+    if (hechos) avisar(`${hechos} ${hechos === 1 ? "aliado agregado" : "aliados agregados"} a ${g.titulo}`);
     if (errores.length) avisar(`No se pudieron subir: ${errores.join("; ")}`, "error");
   }
 
