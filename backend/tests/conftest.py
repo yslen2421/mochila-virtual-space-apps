@@ -17,11 +17,13 @@ def app(tmp_path):
         carpeta_datos=tmp_path, ruta_bd=str(tmp_path / "test.db"),
         carpeta_archivos=str(tmp_path / "archivos"), secret_key="x" * 40,
         servir_frontend=False, metodo_hash="pbkdf2:sha256:1000",  # hash rápido en pruebas
+        url_portal="https://mochila.ejemplo.org/",
+        correo_en_segundo_plano=False,  # en pruebas el correo se "envía" (a archivo) antes de responder
     )
     app = create_app(config)
     c = app.extensions["contenedor"]
     c.usuarios.crear(CrearUsuario(usuario="admin", nombre="Admin", rol=Rol.SUPERADMIN, contrasena="admin-secreta"))
-    c.usuarios.crear(CrearUsuario(usuario="ana", nombre="Ana", contrasena="ana-secreta",
+    c.usuarios.crear(CrearUsuario(usuario="ana", nombre="Ana", contrasena="ana-secreta", email="ana@correo.com",
                                   categoria=Categoria.UNIVERSIDAD, equipo="Los Cometas"))
     return app
 

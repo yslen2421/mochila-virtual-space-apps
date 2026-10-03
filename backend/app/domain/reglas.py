@@ -147,3 +147,14 @@ def normalizar_equipo(equipo: str) -> str:
 def validar_datos_participante(usuario: Usuario) -> None:
     if usuario.rol == Rol.PARTICIPANTE and usuario.categoria is None:
         raise ErrorValidacion("Elige la categoría: universidad o bachillerato.", {"campo": "categoria"})
+
+
+PATRON_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def validar_email(email: str) -> str:
+    """Correo opcional; si viene, debe tener forma de correo (sirve para recuperar la contraseña)."""
+    email = (email or "").strip()
+    if email and (len(email) > 200 or not PATRON_EMAIL.match(email)):
+        raise ErrorValidacion(f"El correo «{email}» no parece válido.", {"campo": "email"})
+    return email

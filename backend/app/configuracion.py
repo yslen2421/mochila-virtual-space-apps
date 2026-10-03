@@ -46,6 +46,21 @@ def _secreto(carpeta_datos: Path) -> str:
     return archivo.read_text().strip()
 
 
+def _url_portal() -> str:
+    """Base de los enlaces de los correos.
+
+    PORTAL_URL manda. Si no está, en el servidor (detrás de Caddy, DETRAS_DE_PROXY=1) se usa
+    https://DOMINIO/. En el computador queda vacía y se usa la dirección desde la que se abrió
+    el portal (por ejemplo http://localhost:5000/), aunque el .env traiga un DOMINIO de ejemplo.
+    """
+    if os.environ.get("PORTAL_URL", "").strip():
+        return os.environ["PORTAL_URL"].strip()
+    dominio = os.environ.get("DOMINIO", "").strip()
+    if dominio and _bool("DETRAS_DE_PROXY", False):
+        return f"https://{dominio}/"
+    return ""
+
+
 @dataclass
 class Configuracion:
     carpeta_datos: Path
@@ -60,6 +75,16 @@ class Configuracion:
     detras_de_proxy: bool = False
     metodo_hash: str = "scrypt"
     zona_horaria: str = "America/Bogota"   # el cronograma se escribe en hora de Colombia
+    # Dirección pública del portal, para los enlaces de los correos (https://tu-dominio/)
+    url_portal: str = ""
+    # Correo saliente (recuperación de contraseña). Sin SMTP_HOST, los correos se guardan en datos/correos/
+    smtp_host: str = ""
+    smtp_puerto: int = 587
+    smtp_usuario: str = ""
+    smtp_contrasena: str = ""
+    smtp_seguridad: str = "starttls"        # starttls (puerto 587), ssl (puerto 465) o ninguna
+    correo_remitente: str = ""
+    correo_en_segundo_plano: bool = True
 
     @classmethod
     def desde_entorno(cls) -> "Configuracion":
@@ -77,4 +102,11 @@ class Configuracion:
             usar_x_accel=_bool("USAR_X_ACCEL", False),
             detras_de_proxy=_bool("DETRAS_DE_PROXY", False),
             zona_horaria=os.environ.get("ZONA_HORARIA", "America/Bogota"),
+            url_portal=_url_portal(),
+            smtp_host=os.environ.get("SMTP_HOST", "").strip(),
+            smtp_puerto=int(os.environ.get("SMTP_PUERTO", "587")),
+            smtp_usuario=os.environ.get("SMTP_USUARIO", "").strip(),
+            smtp_contrasena=os.environ.get("SMTP_CONTRASENA", "").replace(" ", ""),
+            smtp_seguridad=os.environ.get("SMTP_SEGURIDAD", "starttls").strip().lower(),
+            correo_remitente=os.environ.get("CORREO_REMITENTE", "").strip(),
         )

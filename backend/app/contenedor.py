@@ -13,10 +13,12 @@ from .application.autenticacion import ServicioAutenticacion
 from .application.contenido import ServicioItems, ServicioSecciones
 from .application.estadisticas import ServicioEstadisticas
 from .application.marca import ServicioMarca
+from .application.recuperacion import ServicioRecuperacion
 from .application.mochila import ServicioMochila
 from .application.usuarios import ServicioUsuarios
 from .configuracion import Configuracion
 from .infrastructure.almacen import AlmacenLocal
+from .infrastructure.correo import EnviadorArchivo, EnviadorSmtp, EnvioEnSegundoPlano
 from .infrastructure.seguridad import EmisorJwt, HasherWerkzeug, RelojSistema
 from .infrastructure.sqlite import (
     BaseDatos,
@@ -26,6 +28,7 @@ from .infrastructure.sqlite import (
     RepositorioAliadosSqlite,
     RepositorioArchivosSqlite,
     RepositorioItemsSqlite,
+    RepositorioRestablecimientosSqlite,
     RepositorioSeccionesSqlite,
     RepositorioUsuariosSqlite,
 )
@@ -43,6 +46,17 @@ class Contenedor:
     usuarios: ServicioUsuarios
     estadisticas: ServicioEstadisticas
     marca: ServicioMarca
+    recuperacion: ServicioRecuperacion
+
+
+def construir_correo(config: Configuracion):
+    remitente = config.correo_remitente or config.smtp_usuario or "Mochila virtual <no-responder@localhost>"
+    if config.smtp_host:
+        enviador = EnviadorSmtp(config.smtp_host, config.smtp_puerto, config.smtp_usuario,
+                                config.smtp_contrasena, remitente, config.smtp_seguridad)
+    else:
+        enviador = EnviadorArchivo(str(config.carpeta_datos / "correos"), remitente)
+    return EnvioEnSegundoPlano(enviador) if config.correo_en_segundo_plano else enviador
 
 
 def construir(config: Configuracion) -> Contenedor:
@@ -54,12 +68,13 @@ def construir(config: Configuracion) -> Contenedor:
     actividad = RegistroActividadSqlite(db, config.zona_horaria)
     hasher = HasherWerkzeug(config.metodo_hash)
     tokens = EmisorJwt(config.secret_key, timedelta(hours=config.horas_token))
+    intentos = ControlIntentosSqlite(db)
 
     archivos = ServicioArchivos(repo_archivos, AlmacenLocal(config.carpeta_archivos), repo_items, actividad)
     return Contenedor(
         config=config,
         db=db,
-        auth=ServicioAutenticacion(repo_usuarios, hasher, tokens, ControlIntentosSqlite(db), actividad, RelojSistema()),
+        auth=ServicioAutenticacion(repo_usuarios, hasher, tokens, intentos, actividad, RelojSistema()),
         mochila=ServicioMochila(repo_secciones, repo_items, repo_archivos, actividad),
         secciones=ServicioSecciones(repo_secciones, repo_items, archivos),
         items=ServicioItems(repo_secciones, repo_items, repo_archivos, archivos),
@@ -67,4 +82,6 @@ def construir(config: Configuracion) -> Contenedor:
         usuarios=ServicioUsuarios(repo_usuarios, hasher),
         estadisticas=ServicioEstadisticas(repo_usuarios, actividad),
         marca=ServicioMarca(RepositorioAjustesSqlite(db), RepositorioAliadosSqlite(db), repo_archivos, archivos),
+        recuperacion=ServicioRecuperacion(repo_usuarios, RepositorioRestablecimientosSqlite(db), hasher, tokens,
+                                          construir_correo(config), intentos),
     )

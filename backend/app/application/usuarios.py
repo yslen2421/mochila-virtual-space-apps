@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from ..domain.entidades import Rol, Usuario
 from ..domain.errores import Conflicto, ErrorValidacion, NoEncontrado
 from ..domain.puertos import HasherContrasenas, RepositorioUsuarios
-from ..domain.reglas import normalizar_equipo, validar_contrasena, validar_datos_participante, validar_usuario
+from ..domain.reglas import normalizar_equipo, validar_contrasena, validar_datos_participante, validar_email, validar_usuario
 from .comandos import ActualizarUsuario, CrearUsuario
 
 # Palabras para contraseñas fáciles de dictar en la sede (ej. "cometa-orbita-4821").
@@ -54,7 +54,7 @@ class ServicioUsuarios:
             contrasena = generada = generar_contrasena()
         usuario = Usuario(
             id=None, usuario=validar_usuario(cmd.usuario), nombre=nombre[:120], rol=cmd.rol,
-            email=cmd.email.strip()[:200], modalidad=cmd.modalidad,
+            email=validar_email(cmd.email), modalidad=cmd.modalidad,
             categoria=cmd.categoria, equipo=normalizar_equipo(cmd.equipo),
             password_hash=self._hasher.hashear(contrasena),
         )
@@ -79,6 +79,7 @@ class ServicioUsuarios:
                 nombre_usuario = validar_usuario(cmd.usuario)
                 if not cmd.nombre.strip():
                     raise ErrorValidacion("El nombre es obligatorio.")
+                validar_email(cmd.email)
                 if cmd.rol == Rol.PARTICIPANTE and cmd.categoria is None:
                     raise ErrorValidacion("Falta la categoría (universidad o bachillerato).")
                 if nombre_usuario in vistos:
@@ -103,7 +104,7 @@ class ServicioUsuarios:
                 raise ErrorValidacion("El nombre es obligatorio.", {"campo": "nombre"})
             usuario.nombre = cmd.nombre.strip()[:120]
         if cmd.email is not None:
-            usuario.email = cmd.email.strip()[:200]
+            usuario.email = validar_email(cmd.email)
         if cmd.modalidad is not None:
             usuario.modalidad = cmd.modalidad
         if cmd.categoria is not None:
@@ -124,9 +125,12 @@ class ServicioUsuarios:
                 usuario.invalidar_sesiones()
         return self._usuarios.guardar(usuario)
 
-    def restablecer_contrasena(self, usuario_id: int) -> UsuarioConContrasena:
+    def restablecer_contrasena(self, usuario_id: int, contrasena: str | None = None) -> UsuarioConContrasena:
+        """El Superadmin le pone una contraseña nueva a cualquier cuenta: la que escriba, o una generada."""
         usuario = self._obtener(usuario_id)
-        nueva = generar_contrasena()
+        if contrasena:
+            validar_contrasena(contrasena)
+        nueva = contrasena or generar_contrasena()
         usuario.password_hash = self._hasher.hashear(nueva)
         usuario.invalidar_sesiones()
         return UsuarioConContrasena(self._usuarios.guardar(usuario), nueva)

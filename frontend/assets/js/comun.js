@@ -326,7 +326,7 @@ function logoDeMarca(marca) {
 
 /* ---------------------------------------------------------------- pantalla de ingreso */
 
-function pantallaIngreso({ titulo, subtitulo, nota, enlace, logo, mensajeInicial, alEntrar }) {
+function pantallaIngreso({ titulo, subtitulo, nota, enlace, logo, mensajeInicial, alEntrar, alOlvidar }) {
   const errorZona = h("div", { "aria-live": "assertive" });
   const usuario = h("input", { type: "text", id: "usuario", name: "usuario", autocomplete: "username",
     autocapitalize: "none", spellcheck: "false", required: true });
@@ -369,11 +369,20 @@ function pantallaIngreso({ titulo, subtitulo, nota, enlace, logo, mensajeInicial
     h("div", { class: "campo" }, h("label", { for: "usuario" }, "Usuario"), usuario),
     h("div", { class: "campo" },
       h("div", { class: "fila-etiqueta" }, h("label", { for: "contrasena" }, "Contraseña"), verContrasena),
-      contrasena),
+      contrasena,
+      alOlvidar && h("button", { type: "button", class: "enlace-boton olvide", onclick: () => alOlvidar(usuario.value.trim()) },
+        "¿Olvidaste tu contraseña?")),
     boton,
     nota && h("p", { class: "nota" }, nota),
     enlace && h("p", { class: "nota" }, h("a", { href: enlace.href }, enlace.texto)));
 
+  const pantalla = h("main", { class: "ingreso tema-espacio" }, arteIngreso(titulo, logo), h("section", { class: "ingreso-formulario" }, formulario));
+  setTimeout(() => usuario.focus(), 50);
+  return pantalla;
+}
+
+/** La mitad ilustrada de las pantallas de ingreso (cielo, logo y marca del evento). */
+function arteIngreso(titulo, logo) {
   const arte = h("div", { class: "ingreso-arte" });
   const plantilla = document.getElementById("plantilla-cielo");
   if (plantilla) arte.append(plantilla.content.cloneNode(true));
@@ -383,8 +392,100 @@ function pantallaIngreso({ titulo, subtitulo, nota, enlace, logo, mensajeInicial
     h("h1", {}, titulo),
     h("p", { class: "eslogan" }, "La próxima frontera, donde tus ideas nos llevarán más lejos."),
     h("p", { class: "fechas" }, "14 y 15 de noviembre de 2026. Organiza Ola Fibonacci.")));
+  return arte;
+}
 
-  const pantalla = h("main", { class: "ingreso tema-espacio" }, arte, h("section", { class: "ingreso-formulario" }, formulario));
-  setTimeout(() => usuario.focus(), 50);
-  return pantalla;
+/* ---------------------------------------------------------------- olvidé mi contraseña */
+
+function dialogoOlvido(api, sugerido = "") {
+  const zona = h("div", { "aria-live": "polite" });
+  const identificador = h("input", { type: "text", id: "olvido-id", autocomplete: "username", autocapitalize: "none",
+    spellcheck: "false", valor: sugerido });
+  const enviar = h("button", { type: "submit", class: "boton" }, "Enviarme el enlace");
+  const cuerpo = h("form", { class: "dialogo-cuerpo", novalidate: true,
+    onsubmit: async (e) => {
+      e.preventDefault();
+      vaciar(zona);
+      if (!identificador.value.trim()) return zona.append(h("div", { class: "aviso-error" }, "Escribe tu usuario o tu correo."));
+      enviar.disabled = true;
+      enviar.textContent = "Enviando…";
+      try {
+        const r = await api.pedir("/auth/olvide-contrasena", { metodo: "POST", cuerpo: { identificador: identificador.value.trim() } });
+        vaciar(cuerpo,
+          h("h2", {}, "Revisa tu correo"),
+          h("p", {}, r.mensaje),
+          h("p", { class: "ayuda" }, "¿No tienes correo registrado o no te llega? Escríbele al equipo organizador: un Superadmin puede ponerte una contraseña nueva."),
+          h("div", { class: "dialogo-acciones" }, h("button", { type: "button", class: "boton", onclick: () => dialogo.close() }, "Entendido")));
+      } catch (error) {
+        zona.append(bloqueError(error));
+        enviar.disabled = false;
+        enviar.textContent = "Enviarme el enlace";
+      }
+    } },
+    h("h2", {}, "¿Olvidaste tu contraseña?"),
+    h("p", {}, "Escribe tu usuario o el correo con el que te registraron. Te enviaremos un enlace para elegir una contraseña nueva."),
+    zona,
+    h("div", { class: "campo" }, h("label", { for: "olvido-id" }, "Usuario o correo"), identificador),
+    h("div", { class: "dialogo-acciones" },
+      h("button", { type: "button", class: "boton discreto", onclick: () => dialogo.close() }, "Cancelar"),
+      enviar));
+  const dialogo = abrirDialogo(cuerpo);
+  identificador.focus();
+}
+
+/** Pantalla del enlace que llega al correo: elegir una contraseña nueva. */
+function pantallaNuevaContrasena({ codigo, api, logo, alListo, alPedirOtro }) {
+  const zona = h("div", { "aria-live": "assertive" });
+  const contenido = h("div", { class: "contenido-clave" }, h("p", { class: "nota" }, "Revisando el enlace…"));
+  const formulario = h("div", { class: "form-clave" }, h("h2", {}, "Elige tu nueva contraseña"), zona, contenido);
+
+  (async () => {
+    let usuario;
+    try {
+      usuario = (await api.pedir("/auth/restablecer/verificar", { metodo: "POST", cuerpo: { codigo } })).usuario;
+    } catch (error) {
+      vaciar(contenido,
+        h("div", { class: "aviso-error" }, error.message),
+        h("button", { type: "button", class: "boton", onclick: alPedirOtro }, "Pedir un enlace nuevo"),
+        h("p", { class: "nota" }, h("a", { href: location.pathname }, "Volver a la pantalla de ingreso")));
+      return;
+    }
+    const nueva = h("input", { type: "password", id: "clave-nueva", autocomplete: "new-password", minlength: "8" });
+    const repetir = h("input", { type: "password", id: "clave-repetir", autocomplete: "new-password" });
+    const ver = h("button", { type: "button", class: "boton discreto pequeno", "aria-pressed": "false",
+      onclick: () => {
+        const visible = nueva.type === "password";
+        nueva.type = repetir.type = visible ? "text" : "password";
+        ver.textContent = visible ? "Ocultar" : "Mostrar";
+        ver.setAttribute("aria-pressed", String(visible));
+      } }, "Mostrar");
+    const guardar = h("button", { type: "submit", class: "boton" }, "Guardar y entrar");
+    vaciar(contenido, h("form", { novalidate: true,
+      onsubmit: async (e) => {
+        e.preventDefault();
+        vaciar(zona);
+        if (nueva.value.length < 8) return zona.append(h("div", { class: "aviso-error" }, "La contraseña debe tener al menos 8 caracteres."));
+        if (nueva.value !== repetir.value) return zona.append(h("div", { class: "aviso-error" }, "Las dos contraseñas no coinciden."));
+        guardar.disabled = true;
+        guardar.textContent = "Guardando…";
+        try {
+          const r = await api.pedir("/auth/restablecer", { metodo: "POST", cuerpo: { codigo, nueva: nueva.value } });
+          alListo(r);
+        } catch (error) {
+          zona.append(bloqueError(error));
+          guardar.disabled = false;
+          guardar.textContent = "Guardar y entrar";
+        }
+      } },
+      h("p", { class: "nota" }, `Hola, ${usuario.nombre.split(" ")[0]}. Tu usuario es `, h("strong", {}, usuario.usuario), "."),
+      h("div", { class: "campo" },
+        h("div", { class: "fila-etiqueta" }, h("label", { for: "clave-nueva" }, "Nueva contraseña"), ver),
+        nueva, h("span", { class: "ayuda" }, "Mínimo 8 caracteres.")),
+      h("div", { class: "campo" }, h("label", { for: "clave-repetir" }, "Repítela"), repetir),
+      guardar));
+    nueva.focus();
+  })();
+
+  return h("main", { class: "ingreso tema-espacio" }, arteIngreso("Recupera tu acceso", logo),
+    h("section", { class: "ingreso-formulario" }, formulario));
 }

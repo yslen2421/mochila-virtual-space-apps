@@ -98,6 +98,31 @@ def login_panel():
     return jsonify(token=token, usuario=ser.usuario(u), expira_en_horas=svc().config.horas_token)
 
 
+def _url_portal() -> str:
+    """Base de los enlaces de los correos. Se prefiere la configurada (PORTAL_URL o DOMINIO):
+    así nadie puede falsear la cabecera Host para recibir enlaces apuntando a otro sitio."""
+    return svc().config.url_portal or request.host_url
+
+
+@api.post("/auth/olvide-contrasena")
+def olvide_contrasena():
+    mensaje = svc().recuperacion.solicitar(esquemas.solicitud_olvido(_json()), _ip_cliente(), _url_portal())
+    return jsonify(mensaje=mensaje)
+
+
+@api.post("/auth/restablecer/verificar")
+def verificar_enlace():
+    u = svc().recuperacion.verificar(esquemas.codigo_enlace(_json()))
+    return jsonify(usuario={"nombre": u.nombre, "usuario": u.usuario})
+
+
+@api.post("/auth/restablecer")
+def restablecer_con_enlace():
+    codigo, nueva = esquemas.restablecimiento(_json())
+    token, u = svc().recuperacion.restablecer(codigo, nueva)
+    return jsonify(token=token, usuario=ser.usuario(u))
+
+
 @api.get("/auth/yo")
 @requiere_sesion
 def yo():
@@ -285,7 +310,8 @@ def admin_actualizar_usuario(usuario_id: int):
 @api.post("/admin/usuarios/<int:usuario_id>/restablecer-contrasena")
 @requiere_superadmin
 def admin_restablecer_contrasena(usuario_id: int):
-    return jsonify(usuario=_con_contrasena(svc().usuarios.restablecer_contrasena(usuario_id)))
+    contrasena = esquemas.contrasena_opcional(request.get_json(silent=True))
+    return jsonify(usuario=_con_contrasena(svc().usuarios.restablecer_contrasena(usuario_id, contrasena)))
 
 
 @api.delete("/admin/usuarios/<int:usuario_id>")
@@ -361,6 +387,29 @@ def admin_actualizar_aliado(aliado_id: int):
 def admin_eliminar_aliado(aliado_id: int):
     svc().marca.eliminar_aliado(aliado_id)
     return "", 204
+
+
+# ---------------------------------------------------------------- admin: correo
+
+@api.get("/admin/correo")
+@requiere_superadmin
+def admin_estado_correo():
+    r = svc().recuperacion
+    return jsonify(configurado=r.correo_configurado, remitente=r.remitente,
+                   url_portal=_url_portal())
+
+
+@api.post("/admin/correo/prueba")
+@requiere_superadmin
+def admin_correo_prueba():
+    destino = esquemas.destino_prueba(request.get_json(silent=True)) or g.usuario.email
+    try:
+        svc().recuperacion.enviar_prueba(destino)
+    except ErrorValidacion:
+        raise
+    except Exception as e:  # noqa: BLE001 - el admin necesita ver por qué falló el SMTP
+        raise ErrorValidacion(f"El servidor de correo rechazó el envío: {e}")
+    return jsonify(ok=True, destino=destino, configurado=svc().recuperacion.correo_configurado)
 
 
 # ---------------------------------------------------------------- admin: estadísticas
