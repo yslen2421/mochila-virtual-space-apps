@@ -90,6 +90,14 @@ def login():
     return jsonify(token=token, usuario=ser.usuario(u), expira_en_horas=svc().config.horas_token)
 
 
+@api.post("/auth/login-panel")
+def login_panel():
+    """Ingreso del panel de organización: solo cuentas Superadmin obtienen sesión."""
+    usuario, contrasena = esquemas.credenciales(_json())
+    token, u = svc().auth.iniciar_sesion(usuario, contrasena, _ip_cliente(), rol_requerido=Rol.SUPERADMIN)
+    return jsonify(token=token, usuario=ser.usuario(u), expira_en_horas=svc().config.horas_token)
+
+
 @api.get("/auth/yo")
 @requiere_sesion
 def yo():

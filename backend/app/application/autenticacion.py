@@ -44,7 +44,10 @@ class ServicioAutenticacion:
         # el tiempo de respuesta revele qué usuarios existen.
         self._hash_senuelo = hasher.hashear("contrasena-senuelo-no-usar")
 
-    def iniciar_sesion(self, usuario: str, contrasena: str, ip: str) -> tuple[str, Usuario]:
+    def iniciar_sesion(
+        self, usuario: str, contrasena: str, ip: str, rol_requerido: Rol | None = None
+    ) -> tuple[str, Usuario]:
+        """Abre sesión. Con `rol_requerido`, solo esas cuentas obtienen sesión (ingreso del panel)."""
         usuario = normalizar_usuario(usuario)
         clave_usuario, clave_ip = f"u:{usuario}", f"ip:{ip}"
 
@@ -67,6 +70,10 @@ class ServicioAutenticacion:
 
         if not encontrado.activo:
             raise NoAutenticado("Tu cuenta está desactivada. Escríbele al equipo organizador.")
+
+        if rol_requerido and encontrado.rol != rol_requerido:
+            # Credenciales correctas, pero la cuenta no es del equipo organizador: no se abre sesión.
+            raise SinPermiso("Esta cuenta no tiene acceso al panel de organización.")
 
         self._intentos.limpiar(clave_usuario)
         self._usuarios.registrar_login(encontrado.id, self._reloj.ahora())

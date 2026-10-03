@@ -133,6 +133,11 @@ python backend/pruebas_carga.py --url http://localhost:5000 --clave CLAVE_ADMIN 
 
 ## 4. Seguridad
 
+- **El acceso es de un solo sentido:** el Superadmin puede ver el portal de participantes, pero
+  un participante no llega al panel por ningún camino. El panel tiene su propio ingreso
+  (`/auth/login-panel`), que solo abre sesión a cuentas Superadmin; un participante con sesión
+  que escribe `/admin/` vuelve a su mochila, y todas las rutas `/admin` le responden "sin
+  permiso" (hay una prueba que las recorre todas).
 - Contraseñas guardadas con **scrypt** (nunca en texto plano). Mínimo 8 caracteres.
 - Sesión con **JWT firmado** (24 h). Cada usuario tiene una versión de sesión: restablecer
   la contraseña, cambiarla o desactivar la cuenta **cierra todas sus sesiones al instante**.
@@ -202,6 +207,7 @@ Todas las respuestas de error tienen la misma forma:
 | Método | Ruta | Quién | Qué hace |
 |---|---|---|---|
 | POST | `/auth/login` | todos | `{usuario, contrasena}` → `{token, usuario}` |
+| POST | `/auth/login-panel` | superadmin | Igual, pero solo abre sesión a cuentas Superadmin (ingreso del panel) |
 | GET | `/auth/yo` | sesión | Datos del usuario actual |
 | POST | `/auth/cambiar-contrasena` | sesión | `{actual, nueva}` → token nuevo |
 | GET | `/mochila` | sesión | Secciones visibles con cuántos ítems tienen |
@@ -244,7 +250,7 @@ Por defecto Flask sirve también el front (más simple de mantener). Si prefiere
 
 ```bash
 cd backend
-python -m pytest            # 22 pruebas: dominio, permisos, flujo completo, sesiones, logos
+python -m pytest            # 28 pruebas: dominio, permisos, flujo completo, sesiones, logos
 ```
 
 ## 7. Ideas para después

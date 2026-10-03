@@ -28,20 +28,13 @@
     if (!sesion.token) return mostrarIngreso();
     try {
       const { usuario } = await api.pedir("/auth/yo");
-      // Un participante con sesión abierta no se desconecta: solo se le muestra el camino a su mochila.
-      if (usuario.rol !== "superadmin") return mostrarIngreso(avisoNoAdmin(usuario.nombre));
+      // Un participante nunca ve el panel: vuelve directo a su mochila, con su sesión intacta.
+      if (usuario.rol !== "superadmin") { location.replace(URL_PORTAL); return; }
       estado.usuario = usuario;
       montar();
     } catch (error) {
       if (error.estado !== 401) mostrarIngreso(error.message);
     }
-  }
-
-  function avisoNoAdmin(nombre) {
-    return [
-      `${nombre ? `${nombre.split(" ")[0]}, tu` : "Tu"} cuenta es de participante: no tiene acceso al panel de organización. `,
-      h("a", { href: URL_PORTAL }, "Ir a mi mochila"),
-    ];
   }
 
   function mostrarIngreso(mensaje) {
@@ -54,9 +47,9 @@
       logo: estado.logoUrl,
       mensajeInicial: mensaje,
       alEntrar: async (usuario, contrasena) => {
-        const r = await api.pedir("/auth/login", { metodo: "POST", cuerpo: { usuario, contrasena } });
-        sesion.token = r.token;  // la sesión sirve también en el portal
-        if (r.usuario.rol !== "superadmin") return mostrarIngreso(avisoNoAdmin(r.usuario.nombre));
+        // Ingreso exclusivo del panel: el servidor solo abre sesión a cuentas Superadmin.
+        const r = await api.pedir("/auth/login-panel", { metodo: "POST", cuerpo: { usuario, contrasena } });
+        sesion.token = r.token;  // la sesión del Superadmin sirve también en el portal
         estado.usuario = r.usuario;
         montar();
       },

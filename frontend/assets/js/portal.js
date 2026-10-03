@@ -36,7 +36,6 @@
       titulo: "Tu mochila virtual",
       subtitulo: "Entra a tu mochila",
       nota: "Recibiste tu usuario y contraseña de la organización. Si no los tienes o los olvidaste, escríbele al equipo de Ola Fibonacci.",
-      enlace: { texto: "¿Eres del equipo organizador? Entra al panel de organización", href: "admin/" },
       logo: logoDeMarca(estado.marca),
       mensajeInicial: mensaje,
       alEntrar: async (usuario, contrasena) => {

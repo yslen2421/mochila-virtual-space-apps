@@ -52,7 +52,7 @@ function crearClienteApi(sesion, alExpirar) {
     if (!respuesta.ok) {
       const e = (datos && datos.error) || {};
       const error = new ErrorApi(e.codigo || "ERROR", e.mensaje || "Ocurrió un error inesperado.", e.detalle, respuesta.status);
-      if (respuesta.status === 401 && sesion.token && ruta !== "/auth/login") {
+      if (respuesta.status === 401 && sesion.token && !ruta.startsWith("/auth/login")) {
         sesion.cerrar();
         if (alExpirar) alExpirar(error.message);
       }
