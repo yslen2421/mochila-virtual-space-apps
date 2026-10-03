@@ -3,3 +3,4 @@ flask-cors==6.0.5
 PyJWT==2.14.0
 gunicorn==26.2.0
 Pillow==12.3.0
+tzdata==2026.4
