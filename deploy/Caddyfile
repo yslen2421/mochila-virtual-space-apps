@@ -1,0 +1,18 @@
+# Caddy consigue y renueva solo el certificado HTTPS (Let's Encrypt).
+# Solo necesitas que el dominio apunte a la IP del servidor.
+{$DOMINIO} {
+	encode zstd gzip
+
+	request_body {
+		max_size 110MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+
+	reverse_proxy app:5000 {
+		header_up X-Forwarded-For {remote_host}
+	}
+}

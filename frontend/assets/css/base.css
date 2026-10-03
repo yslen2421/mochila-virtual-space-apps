@@ -1,0 +1,330 @@
+/* ==========================================================================
+   Base compartida: tipografías, tokens, controles. La usan portal y panel.
+   ========================================================================== */
+
+@font-face { font-family: "Bricolage"; src: url("../fonts/bricolage-grotesque-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Bricolage"; src: url("../fonts/bricolage-grotesque-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Bricolage"; src: url("../fonts/bricolage-grotesque-latin-800-normal.woff2") format("woff2"); font-weight: 800; font-display: swap; }
+@font-face { font-family: "Atkinson"; src: url("../fonts/atkinson-hyperlegible-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Atkinson"; src: url("../fonts/atkinson-hyperlegible-latin-400-italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+@font-face { font-family: "Atkinson"; src: url("../fonts/atkinson-hyperlegible-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+:root {
+  /* Paleta */
+  --noche: #172042;          /* tinta, banda superior */
+  --neblina: #eef1f6;        /* fondo de página */
+  --papel: #ffffff;          /* superficies */
+  --hilo: #f5b700;           /* puntadas de las insignias */
+  --orbita: #2f4ad0;         /* acciones y enlaces */
+  --paramo: #1f7a5a;         /* "ahora", éxito */
+  --alerta: #c23b2a;         /* errores */
+
+  /* Roles */
+  --fondo: var(--neblina);
+  --superficie: var(--papel);
+  --superficie-2: #f6f8fb;
+  --texto: #1a2238;
+  --texto-suave: #4f5873;
+  --linea: #d8deea;
+  --accion: var(--orbita);
+  --accion-texto: #ffffff;
+  --accion-suave: #e6eafc;
+  --exito: var(--paramo);
+  --exito-suave: #e1f2ea;
+  --peligro: var(--alerta);
+  --peligro-suave: #fbe7e4;
+  --foco: #f5b700;
+
+  /* Tonos de las insignias (hilo de fondo de cada parche) */
+  --tono-1: #2a3577;
+  --tono-2: #1f6b52;
+  --tono-3: #8a5a12;
+  --tono-4: #2f4ad0;
+  --tono-5: #6b3fa0;
+  --tono-6: #a13a2e;
+
+  /* Tipografía (escala 1.25) */
+  --familia-titulo: "Bricolage", "Segoe UI", system-ui, sans-serif;
+  --familia-texto: "Atkinson", "Segoe UI", system-ui, sans-serif;
+  --t-xs: 0.8rem;
+  --t-sm: 0.9rem;
+  --t-md: 1.0625rem;
+  --t-lg: 1.33rem;
+  --t-xl: 1.66rem;
+  --t-2xl: 2.07rem;
+  --t-3xl: 2.6rem;
+
+  --radio-s: 6px;
+  --radio-m: 12px;
+  --sombra: 0 1px 2px rgba(23, 32, 66, 0.08), 0 4px 16px rgba(23, 32, 66, 0.06);
+  --ancho: 1080px;
+  --margen: 16px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #0f1530;
+    --superficie: #182046;
+    --superficie-2: #1d2654;
+    --texto: #e8ecf8;
+    --texto-suave: #aab3d0;
+    --linea: #2c3769;
+    --accion: #8fa1ff;
+    --accion-texto: #0f1530;
+    --accion-suave: #26306a;
+    --exito: #5fd0a3;
+    --exito-suave: #153a33;
+    --peligro: #ff8a78;
+    --peligro-suave: #45201f;
+    --sombra: 0 1px 2px rgba(0, 0, 0, 0.3);
+    color-scheme: dark;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: var(--familia-texto);
+  font-size: var(--t-md);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--familia-titulo);
+  line-height: 1.15;
+  margin: 0;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+p { margin: 0; }
+
+a { color: var(--accion); text-underline-offset: 0.2em; }
+
+img { max-width: 100%; display: block; }
+
+[hidden] { display: none !important; }
+
+:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.solo-lector {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+.contenedor {
+  width: 100%;
+  max-width: var(--ancho);
+  margin: 0 auto;
+  padding: 0 var(--margen);
+}
+
+/* ---------------------------------------------------------------- botones */
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45em;
+  min-height: 44px;
+  padding: 0.55em 1.1em;
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  background: var(--accion);
+  color: var(--accion-texto);
+  font: 700 var(--t-md)/1.1 var(--familia-texto);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s;
+}
+.boton:hover { filter: brightness(1.08); }
+.boton:disabled { opacity: 0.6; cursor: progress; }
+
+.boton.secundario { background: transparent; color: var(--accion); border-color: currentColor; }
+.boton.discreto { background: transparent; color: var(--texto-suave); padding-inline: 0.6em; }
+.boton.discreto:hover { color: var(--texto); filter: none; }
+.boton.peligro { background: var(--peligro); color: #fff; }
+.boton.peligro.secundario { background: transparent; color: var(--peligro); }
+.boton.pequeno { min-height: 36px; padding: 0.35em 0.85em; font-size: var(--t-sm); }
+
+/* ---------------------------------------------------------------- formularios */
+
+.campo { display: grid; gap: 0.35rem; }
+.campo + .campo { margin-top: 1rem; }
+
+.campo label, .etiqueta {
+  font-weight: 700;
+  font-size: var(--t-sm);
+}
+
+.campo .ayuda { font-size: var(--t-sm); color: var(--texto-suave); }
+
+input[type="text"], input[type="password"], input[type="email"], input[type="url"],
+input[type="date"], input[type="time"], input[type="search"], select, textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 0.6em 0.8em;
+  border: 1.5px solid var(--linea);
+  border-radius: var(--radio-s);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+}
+textarea { min-height: 7em; resize: vertical; line-height: 1.5; }
+input:focus, select:focus, textarea:focus { border-color: var(--accion); outline: none; box-shadow: 0 0 0 3px var(--accion-suave); }
+input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--peligro); }
+
+.casilla { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; cursor: pointer; }
+.casilla input { width: 1.25rem; height: 1.25rem; accent-color: var(--accion); }
+
+.aviso-error {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radio-s);
+  background: var(--peligro-suave);
+  color: var(--peligro);
+  font-weight: 700;
+}
+.aviso-error ul { margin: 0.4rem 0 0; padding-left: 1.2rem; font-weight: 400; }
+
+/* ---------------------------------------------------------------- diálogos */
+
+dialog {
+  width: min(560px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radio-m);
+  background: var(--superficie);
+  color: var(--texto);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+dialog::backdrop { background: rgba(15, 21, 48, 0.55); }
+dialog.ancho { width: min(820px, calc(100vw - 24px)); }
+
+.dialogo-cuerpo { padding: 1.5rem; display: grid; gap: 1rem; }
+.dialogo-cuerpo h2 { font-size: var(--t-xl); }
+.dialogo-acciones { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: flex-end; padding-top: 0.5rem; }
+
+/* ---------------------------------------------------------------- avisos flotantes */
+
+.tostadas {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 8px;
+  z-index: 100;
+  width: min(440px, calc(100vw - 32px));
+}
+.tostada {
+  padding: 0.8rem 1rem;
+  border-radius: var(--radio-s);
+  background: var(--noche);
+  color: #fff;
+  box-shadow: var(--sombra);
+  font-weight: 700;
+}
+.tostada.error { background: var(--alerta); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .tostada { animation: tostada-entra 0.2s ease-out; }
+  @keyframes tostada-entra { from { opacity: 0; transform: translateY(8px); } }
+}
+
+/* ---------------------------------------------------------------- pantalla de ingreso (compartida) */
+
+.ingreso {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr;
+  background: var(--noche);
+  color: #fff;
+}
+
+.ingreso-arte {
+  position: relative;
+  overflow: hidden;
+  padding: 2rem var(--margen) 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 34vh;
+}
+
+.ingreso-arte svg.espiral {
+  position: absolute;
+  right: -18%;
+  top: -10%;
+  width: 115%;
+  max-width: 760px;
+  opacity: 0.95;
+  pointer-events: none;
+}
+
+.ingreso-marca { position: relative; display: grid; gap: 0.6rem; max-width: 30ch; }
+.ingreso-marca .organiza { color: #c9d0ec; font-size: var(--t-sm); }
+.ingreso-marca h1 { font-size: var(--t-2xl); font-weight: 800; }
+
+.ingreso-formulario {
+  background: var(--fondo);
+  color: var(--texto);
+  padding: 2rem var(--margen) 3rem;
+  display: flex;
+  justify-content: center;
+}
+.ingreso-formulario form { width: 100%; max-width: 380px; display: grid; gap: 1rem; align-content: start; }
+.ingreso-formulario h2 { font-size: var(--t-xl); }
+.fila-etiqueta { display: flex; align-items: center; justify-content: space-between; }
+.ingreso-formulario button[type="submit"] { width: 100%; margin-top: 0.4rem; }
+.ingreso-formulario .campo + .campo { margin-top: 0; }
+.ingreso-formulario .fila-etiqueta .boton { min-height: 32px; margin-right: -0.6em; }
+.ingreso-formulario .nota { font-size: var(--t-sm); color: var(--texto-suave); }
+
+@media (min-width: 860px) {
+  .ingreso { grid-template-columns: 1.15fr 1fr; }
+  .ingreso-arte { padding: 3.5rem; min-height: 100vh; }
+  .ingreso-arte svg.espiral { right: -12%; top: 6%; width: 100%; }
+  .ingreso-marca h1 { font-size: var(--t-3xl); }
+  .ingreso-formulario { align-items: center; padding: 3rem; }
+}
+
+/* puntadas de la espiral: el trazo se "borda" una sola vez al cargar */
+.espiral .puntada { fill: none; stroke: var(--hilo); stroke-width: 2.2; stroke-dasharray: 7 6; stroke-linecap: round; }
+.espiral .orbita-fina { fill: none; stroke: rgba(255, 255, 255, 0.14); stroke-width: 1; }
+.espiral .astro { fill: var(--hilo); }
+.espiral .astro.frio { fill: #8fa1ff; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .espiral .bordado { stroke-dasharray: 2200; stroke-dashoffset: 2200; animation: bordar 2.4s 0.2s ease-out forwards; }
+  @keyframes bordar { to { stroke-dashoffset: 0; } }
+}
+
+/* ---------------------------------------------------------------- utilidades */
+
+.cargando {
+  display: grid;
+  place-items: center;
+  min-height: 30vh;
+  color: var(--texto-suave);
+}
+.vacio {
+  padding: 2rem 1.25rem;
+  border: 1.5px dashed var(--linea);
+  border-radius: var(--radio-m);
+  color: var(--texto-suave);
+  text-align: center;
+}

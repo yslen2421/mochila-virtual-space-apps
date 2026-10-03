@@ -1,0 +1,31 @@
+# Despliegue completo: portal + HTTPS automático.
+#   1. Copia .env.example a .env y llénalo.
+#   2. docker compose up -d --build
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      DATA_DIR: /datos
+      DETRAS_DE_PROXY: "1"
+    volumes:
+      - ./datos:/datos          # base de datos, archivos subidos y respaldos
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    depends_on: [app]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMINIO: ${DOMINIO}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_datos:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  caddy_datos:
+  caddy_config:
