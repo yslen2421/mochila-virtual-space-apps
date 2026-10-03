@@ -78,8 +78,8 @@ def test_archivo_no_permitido(cliente, admin):
 
 def test_importar_y_restablecer(cliente, admin):
     r = cliente.post("/api/v1/admin/usuarios/importar", headers=admin, json={"usuarios": [
-        {"usuario": "luis", "nombre": "Luis", "modalidad": "virtual"},
-        {"usuario": "sofi", "nombre": "Sofía"},
+        {"usuario": "luis", "nombre": "Luis", "modalidad": "virtual", "categoria": "bachillerato"},
+        {"usuario": "sofi", "nombre": "Sofía", "categoria": "universidad"},
     ]})
     assert r.status_code == 201, r.json
     luis = r.json["usuarios"][0]
@@ -94,7 +94,8 @@ def test_importar_y_restablecer(cliente, admin):
 
     # Un lote con errores no crea nada
     r = cliente.post("/api/v1/admin/usuarios/importar", headers=admin, json={"usuarios": [
-        {"usuario": "nuevo", "nombre": "Nuevo"}, {"usuario": "luis", "nombre": "Repetido"}]})
+        {"usuario": "nuevo", "nombre": "Nuevo", "categoria": "universidad"},
+        {"usuario": "luis", "nombre": "Repetido", "categoria": "universidad"}]})
     assert r.status_code == 409 or r.status_code == 400
     assert not any(u["usuario"] == "nuevo" for u in cliente.get("/api/v1/admin/usuarios", headers=admin).json["usuarios"])
 

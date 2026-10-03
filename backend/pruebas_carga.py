@@ -78,7 +78,8 @@ def main():
 
     token = pedir(a.url, "/auth/login", cuerpo={"usuario": a.admin, "contrasena": a.clave})["token"]
     existentes = {u["usuario"] for u in pedir(a.url, "/admin/usuarios", token)["usuarios"]}
-    nuevos = [{"nombre": f"Carga {i}", "usuario": f"carga{i}", "contrasena": "clave-de-carga"}
+    nuevos = [{"nombre": f"Carga {i}", "usuario": f"carga{i}", "contrasena": "clave-de-carga",
+               "categoria": "universidad", "equipo": f"Equipo {i % 30}"}
               for i in range(1, a.usuarios + 1) if f"carga{i}" not in existentes]
     if nuevos:
         print(f"Creando {len(nuevos)} cuentas de prueba…")

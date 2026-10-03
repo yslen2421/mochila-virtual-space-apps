@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from typing import Callable
 
-from .entidades import Aliado, GrupoAliados, Item, Seccion, TipoItem
+from .entidades import Aliado, GrupoAliados, Item, Rol, Seccion, TipoItem, Usuario
 from .errores import ErrorValidacion
 
 PATRON_USUARIO = re.compile(r"^[a-z0-9._-]{3,40}$")
@@ -137,3 +137,13 @@ def validar_aliado(aliado: Aliado) -> None:
         raise ErrorValidacion("El nombre no puede superar 120 caracteres.", {"campo": "nombre"})
     if aliado.url and not _url_valida(aliado.url):
         raise ErrorValidacion("El enlace debe empezar por https:// o http://", {"campo": "url"})
+
+
+def normalizar_equipo(equipo: str) -> str:
+    """Quita espacios repetidos para que "Los  Cometas " y "Los Cometas" sean el mismo equipo."""
+    return " ".join((equipo or "").split())[:120]
+
+
+def validar_datos_participante(usuario: Usuario) -> None:
+    if usuario.rol == Rol.PARTICIPANTE and usuario.categoria is None:
+        raise ErrorValidacion("Elige la categoría: universidad o bachillerato.", {"campo": "categoria"})

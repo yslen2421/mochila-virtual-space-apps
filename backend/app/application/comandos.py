@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ..domain.entidades import Modalidad, Rol, TipoItem
+from ..domain.entidades import Categoria, Modalidad, Rol, TipoItem
 
 
 @dataclass(frozen=True)
@@ -60,6 +60,8 @@ class CrearUsuario:
     email: str = ""
     modalidad: Modalidad = Modalidad.PRESENCIAL
     rol: Rol = Rol.PARTICIPANTE
+    categoria: Categoria | None = None
+    equipo: str = ""
     contrasena: str | None = None   # None → se genera una
 
 
@@ -68,4 +70,7 @@ class ActualizarUsuario:
     nombre: str | None = None
     email: str | None = None
     modalidad: Modalidad | None = None
+    categoria: Categoria | None = None
+    equipo: str | None = None
+    rol: Rol | None = None
     activo: bool | None = None

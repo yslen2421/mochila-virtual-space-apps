@@ -73,7 +73,7 @@
         h("span", { class: "nombre-corto" }, u.nombre.split(" ")[0]),
         h("span", { class: "inicial", "aria-hidden": "true" }, u.nombre.trim().charAt(0).toUpperCase())),
       h("div", { class: "opciones" },
-        h("div", { class: "quien" }, u.nombre, h("br"), `Usuario: ${u.usuario}`),
+        h("div", { class: "quien" }, u.nombre, h("br"), `Usuario: ${u.usuario}`, u.equipo && [h("br"), `Equipo: ${u.equipo}`]),
         h("button", { type: "button", onclick: () => { menu.open = false; dialogoContrasena(); } }, "Cambiar contraseña"),
         u.rol === "superadmin" && h("button", { type: "button", onclick: () => { location.href = "admin/"; } }, "Ir al panel de organización"),
         h("button", { type: "button", onclick: salir }, "Cerrar sesión")));

@@ -730,6 +730,9 @@
 
   /* ================================================================ PARTICIPANTES */
 
+  const CATEGORIAS = { universidad: "Universidad", bachillerato: "Bachillerato" };
+  const ROLES = { participante: "Participante", superadmin: "Superadmin" };
+
   let filtro = { texto: "", tipo: "todos" };
   let zonaTabla, zonaConteo;
 
@@ -737,23 +740,31 @@
     document.title = "Participantes — Panel de organización";
     zonaTabla = h("div", { class: "tarjeta tabla-envoltura" }, h("p", { class: "cargando" }, "Cargando…"));
     zonaConteo = h("p", { class: "conteo", "aria-live": "polite" });
-    const buscar = h("input", { type: "search", placeholder: "Buscar por nombre, usuario o correo", "aria-label": "Buscar participantes",
+    const buscar = h("input", { type: "search", placeholder: "Buscar por nombre, usuario, equipo o correo", "aria-label": "Buscar personas",
       valor: filtro.texto, oninput: (e) => { filtro.texto = e.target.value; pintarTabla(); } });
     const tipo = h("select", { "aria-label": "Filtrar", onchange: (e) => { filtro.tipo = e.target.value; pintarTabla(); } },
       h("option", { value: "todos" }, "Todas las personas"),
-      h("option", { value: "presencial" }, "Presenciales"),
-      h("option", { value: "virtual" }, "Virtuales"),
-      h("option", { value: "sin_ingreso" }, "Aún no han entrado"),
-      h("option", { value: "desactivados" }, "Desactivados"),
-      h("option", { value: "superadmin" }, "Superadmins"));
+      h("optgroup", { label: "Categoría" },
+        h("option", { value: "universidad" }, "Universidad"),
+        h("option", { value: "bachillerato" }, "Bachillerato")),
+      h("optgroup", { label: "Equipo" },
+        h("option", { value: "sin_equipo" }, "Sin equipo")),
+      h("optgroup", { label: "Rol" },
+        h("option", { value: "participante" }, "Participantes"),
+        h("option", { value: "superadmin" }, "Superadmins")),
+      h("optgroup", { label: "Otros" },
+        h("option", { value: "presencial" }, "Presenciales"),
+        h("option", { value: "virtual" }, "Virtuales"),
+        h("option", { value: "sin_ingreso" }, "Aún no han entrado"),
+        h("option", { value: "desactivados" }, "Desactivados")));
     tipo.value = filtro.tipo;
     vaciar(principal,
       h("h1", {}, "Participantes"),
-      h("p", { class: "intro" }, "Crea las cuentas una por una o importa la lista completa. Las contraseñas se generan solas y solo se muestran una vez: guárdalas o envíalas en ese momento."),
+      h("p", { class: "intro" }, "Cada persona tiene nombre, categoría, usuario, rol y equipo. Créalas una por una o importa la lista completa. Las contraseñas se generan solas y solo se muestran una vez: guárdalas o envíalas en ese momento."),
       h("div", { class: "herramientas" }, buscar, tipo,
         h("div", { class: "separar" },
           h("button", { type: "button", class: "boton secundario", onclick: dialogoImportar }, "Importar lista"),
-          h("button", { type: "button", class: "boton", onclick: dialogoNuevoUsuario }, "Agregar persona"))),
+          h("button", { type: "button", class: "boton", onclick: () => dialogoPersona() }, "Agregar persona"))),
       zonaConteo,
       zonaTabla);
     await recargarUsuarios();
@@ -770,20 +781,37 @@
     return texto.normalize("NFD").replace(/[̀-ͯ]/g, "");
   }
 
+  function clave(texto) {
+    return sinTildes(String(texto || "").trim().toLowerCase());
+  }
+
+  /** Nombres de equipo ya usados (sin repetir mayúsculas/minúsculas), para sugerirlos al escribir. */
+  function equiposExistentes() {
+    const vistos = new Map();
+    for (const u of estado.usuarios) if (u.equipo && !vistos.has(clave(u.equipo))) vistos.set(clave(u.equipo), u.equipo);
+    return [...vistos.values()].sort((a, b) => a.localeCompare(b, "es"));
+  }
+
   function pintarTabla() {
-    const q = sinTildes(filtro.texto.trim().toLowerCase());
+    const q = clave(filtro.texto);
     const lista = estado.usuarios.filter((u) => {
-      if (q && !sinTildes(`${u.nombre} ${u.usuario} ${u.email}`.toLowerCase()).includes(q)) return false;
+      if (q && !clave(`${u.nombre} ${u.usuario} ${u.email} ${u.equipo}`).includes(q)) return false;
       switch (filtro.tipo) {
+        case "universidad": case "bachillerato": return u.categoria === filtro.tipo;
+        case "sin_equipo": return u.rol === "participante" && !u.equipo;
+        case "participante": case "superadmin": return u.rol === filtro.tipo;
         case "presencial": case "virtual": return u.rol === "participante" && u.modalidad === filtro.tipo;
         case "sin_ingreso": return !u.ultimo_login;
         case "desactivados": return !u.activo;
-        case "superadmin": return u.rol === "superadmin";
         default: return true;
       }
     });
     const participantes = estado.usuarios.filter((u) => u.rol === "participante");
-    zonaConteo.textContent = `${participantes.length} participantes registrados, ${participantes.filter((u) => u.ultimo_login).length} ya entraron al portal. Mostrando ${lista.length}.`;
+    const uni = participantes.filter((u) => u.categoria === "universidad").length;
+    const bach = participantes.filter((u) => u.categoria === "bachillerato").length;
+    const equipos = new Set(participantes.filter((u) => u.equipo).map((u) => clave(u.equipo))).size;
+    zonaConteo.textContent = `${participantes.length} participantes (${uni} de universidad, ${bach} de bachillerato) en ${equipos} ${equipos === 1 ? "equipo" : "equipos"}; ` +
+      `${participantes.filter((u) => u.ultimo_login).length} ya entraron al portal. Mostrando ${lista.length}.`;
 
     if (!lista.length) {
       vaciar(zonaTabla, h("p", { class: "vacio" }, estado.usuarios.length <= 1
@@ -793,17 +821,23 @@
     }
     const formatoIngreso = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
     vaciar(zonaTabla, h("table", { class: "tabla-personas" },
-      h("thead", {}, h("tr", {}, ["Persona", "Usuario", "Modalidad", "Último ingreso", ""].map((t) => h("th", { scope: "col" }, t)))),
+      h("thead", {}, h("tr", {}, ["Nombre", "Categoría", "Usuario", "Rol", "Equipo", "Último ingreso", ""].map((t) => h("th", { scope: "col" }, t)))),
       h("tbody", {}, lista.map((u) => h("tr", { class: u.activo ? "" : "inactivo" },
         h("td", {}, h("span", { class: "nombre" }, u.nombre), " ",
-          u.rol === "superadmin" && h("span", { class: "marca-estado admin" }, "Superadmin"),
           !u.activo && h("span", { class: "marca-estado oculto" }, "Desactivado"),
+          u.rol === "participante" && u.modalidad === "virtual" && h("span", { class: "marca-estado virtual" }, "Virtual"),
           u.email && h("div", { class: "correo" }, u.email)),
+        h("td", { "data-etiqueta": "Categoría" }, u.categoria
+          ? h("span", { class: `marca-estado ${u.categoria}` }, CATEGORIAS[u.categoria])
+          : h("span", { class: "sin-dato" }, u.rol === "superadmin" ? "No aplica" : "Falta")),
         h("td", { "data-etiqueta": "Usuario" }, u.usuario),
-        h("td", {}, u.rol === "superadmin" ? "" : h("span", { class: `marca-estado ${u.modalidad}` }, u.modalidad === "virtual" ? "Virtual" : "Presencial")),
+        h("td", { "data-etiqueta": "Rol" }, u.rol === "superadmin"
+          ? h("span", { class: "marca-estado admin" }, "Superadmin")
+          : "Participante"),
+        h("td", { "data-etiqueta": "Equipo" }, u.equipo || h("span", { class: "sin-dato" }, u.rol === "superadmin" ? "No aplica" : "Sin equipo")),
         h("td", { "data-etiqueta": "Último ingreso" }, u.ultimo_login ? formatoIngreso.format(new Date(u.ultimo_login)) : "Nunca"),
         h("td", { class: "acciones" },
-          h("button", { type: "button", class: "boton discreto pequeno", onclick: () => dialogoEditarUsuario(u) }, "Editar"),
+          h("button", { type: "button", class: "boton discreto pequeno", onclick: () => dialogoPersona(u) }, "Editar"),
           h("button", { type: "button", class: "boton discreto pequeno", onclick: () => restablecer(u) }, "Nueva contraseña"),
           u.id !== estado.usuario.id && h("button", { type: "button", class: "boton discreto pequeno", onclick: () => alternarUsuario(u) },
             u.activo ? "Desactivar" : "Activar")))))));
@@ -811,8 +845,9 @@
 
   function mensajeAcceso(u, contrasena) {
     return `Hola ${u.nombre.split(" ")[0]}, este es tu acceso a la mochila virtual del NASA Space Apps Challenge San Vicente Ferrer:\n\n` +
-      `Portal: ${URL_PORTAL}\nUsuario: ${u.usuario}\nContraseña: ${contrasena}\n\n` +
-      "Al entrar puedes cambiar tu contraseña desde el menú con tu nombre.";
+      `Portal: ${URL_PORTAL}\nUsuario: ${u.usuario}\nContraseña: ${contrasena}\n` +
+      (u.equipo ? `Equipo: ${u.equipo}\n` : "") +
+      "\nAl entrar puedes cambiar tu contraseña desde el menú con tu nombre.";
   }
 
   function dialogoCredencial(u, titulo) {
@@ -841,78 +876,114 @@
     return candidato;
   }
 
-  function dialogoNuevoUsuario() {
-    const ocupados = new Set(estado.usuarios.map((u) => u.usuario));
-    const zonaError = h("div");
-    const nombre = h("input", { type: "text", id: "u-nombre", maxlength: "120", autocomplete: "off" });
-    const usuario = h("input", { type: "text", id: "u-usuario", maxlength: "40", autocapitalize: "none", spellcheck: "false", autocomplete: "off" });
-    let usuarioTocado = false;
-    nombre.addEventListener("input", () => { if (!usuarioTocado) usuario.value = nombre.value.trim() ? sugerirUsuario(nombre.value, ocupados) : ""; });
-    usuario.addEventListener("input", () => { usuarioTocado = true; });
-    const email = h("input", { type: "email", id: "u-email", maxlength: "200", autocomplete: "off" });
-    const modalidad = h("select", { id: "u-modalidad" }, h("option", { value: "presencial" }, "Presencial"), h("option", { value: "virtual" }, "Virtual"));
-    const rol = h("select", { id: "u-rol" }, h("option", { value: "participante" }, "Participante"), h("option", { value: "superadmin" }, "Superadmin (organización)"));
-    const contrasena = h("input", { type: "text", id: "u-contrasena", maxlength: "128", autocomplete: "new-password" });
-    const dialogo = abrirDialogo(h("form", { class: "dialogo-cuerpo", novalidate: true,
-      onsubmit: async (e) => {
-        e.preventDefault();
-        vaciar(zonaError);
-        try {
-          const r = await api.pedir("/admin/usuarios", { metodo: "POST", cuerpo: {
-            nombre: nombre.value, usuario: usuario.value, email: email.value, modalidad: modalidad.value,
-            rol: rol.value, contrasena: contrasena.value || undefined } });
-          dialogo.close();
-          await recargarUsuarios();
-          if (r.usuario.contrasena_generada) dialogoCredencial(r.usuario, "Cuenta creada");
-          else avisar("Cuenta creada con la contraseña que escribiste");
-        } catch (error) { zonaError.append(bloqueError(error)); }
-      } },
-      h("h2", {}, "Agregar persona"),
-      zonaError,
-      h("div", { class: "campo" }, h("label", { for: "u-nombre" }, "Nombre completo"), nombre),
-      h("div", { class: "rejilla-2" },
-        h("div", { class: "campo" }, h("label", { for: "u-usuario" }, "Usuario"), usuario),
-        h("div", { class: "campo" }, h("label", { for: "u-email" }, "Correo (opcional)"), email)),
-      h("div", { class: "rejilla-2" },
-        h("div", { class: "campo" }, h("label", { for: "u-modalidad" }, "Modalidad"), modalidad),
-        h("div", { class: "campo" }, h("label", { for: "u-rol" }, "Rol"), rol)),
-      h("div", { class: "campo" }, h("label", { for: "u-contrasena" }, "Contraseña (opcional)"), contrasena,
-        h("span", { class: "ayuda" }, "Déjala vacía y se genera una fácil de dictar, como cometa-orbita-4821.")),
-      h("div", { class: "dialogo-acciones" },
-        h("button", { type: "button", class: "boton discreto", onclick: () => dialogo.close() }, "Cancelar"),
-        h("button", { type: "submit", class: "boton" }, "Crear cuenta"))));
-    nombre.focus();
+  /** Grupo de opciones tipo botón (radio) accesible. */
+  function opcionesRadio(nombre, leyenda, opciones, valor) {
+    const grupo = h("fieldset", { class: "segmentado" },
+      h("legend", { class: "etiqueta" }, leyenda),
+      Object.entries(opciones).map(([v, texto]) => {
+        const entrada = h("input", { type: "radio", name: nombre, value: v });
+        entrada.checked = v === valor;
+        return h("label", {}, entrada, h("span", {}, texto));
+      }));
+    grupo.valor = () => (grupo.querySelector("input:checked") || {}).value || "";
+    return grupo;
   }
 
-  function dialogoEditarUsuario(u) {
+  /** Crear (sin `u`) o editar (con `u`) una persona: nombre, categoría, usuario, rol y equipo. */
+  function dialogoPersona(u) {
+    const editando = Boolean(u);
+    const esYo = editando && u.id === estado.usuario.id;
+    const ocupados = new Set(estado.usuarios.map((x) => x.usuario));
     const zonaError = h("div");
-    const nombre = h("input", { type: "text", id: "e-nombre", valor: u.nombre, maxlength: "120" });
-    const email = h("input", { type: "email", id: "e-email", valor: u.email, maxlength: "200" });
-    const modalidad = h("select", { id: "e-modalidad" }, h("option", { value: "presencial" }, "Presencial"), h("option", { value: "virtual" }, "Virtual"));
-    modalidad.value = u.modalidad;
+
+    const nombre = h("input", { type: "text", id: "p-nombre", maxlength: "120", autocomplete: "off", valor: editando ? u.nombre : "" });
+    const categoria = opcionesRadio("p-categoria", "Categoría", CATEGORIAS, editando ? u.categoria : "");
+    const usuario = h("input", { type: "text", id: "p-usuario", maxlength: "40", autocapitalize: "none", spellcheck: "false",
+      autocomplete: "off", valor: editando ? u.usuario : "", readonly: editando });
+    const rol = opcionesRadio("p-rol", "Rol", { participante: "Participante", superadmin: "Superadmin, con permisos del panel" },
+      editando ? u.rol : "participante");
+    if (esYo) rol.querySelectorAll("input").forEach((i) => { i.disabled = true; });
+    const listaEquipos = h("datalist", { id: "p-equipos" }, equiposExistentes().map((e) => h("option", { value: e })));
+    const equipo = h("input", { type: "text", id: "p-equipo", maxlength: "120", list: "p-equipos", autocomplete: "off",
+      valor: editando ? u.equipo : "", placeholder: "Por ejemplo: Los Cometas" });
+    const modalidad = h("select", { id: "p-modalidad" }, h("option", { value: "presencial" }, "Presencial"), h("option", { value: "virtual" }, "Virtual"));
+    modalidad.value = editando ? u.modalidad : "presencial";
+    const email = h("input", { type: "email", id: "p-email", maxlength: "200", autocomplete: "off", valor: editando ? u.email : "" });
+    const contrasena = h("input", { type: "text", id: "p-contrasena", maxlength: "128", autocomplete: "new-password" });
+
+    if (!editando) {
+      let usuarioTocado = false;
+      nombre.addEventListener("input", () => { if (!usuarioTocado) usuario.value = nombre.value.trim() ? sugerirUsuario(nombre.value, ocupados) : ""; });
+      usuario.addEventListener("input", () => { usuarioTocado = true; });
+    }
+
+    // Categoría y equipo son de los participantes; a un Superadmin no se le piden.
+    const datosParticipante = h("div", { class: "datos-participante" },
+      categoria,
+      h("div", { class: "campo" }, h("label", { for: "p-equipo" }, "Nombre del equipo"), equipo, listaEquipos,
+        h("span", { class: "ayuda" }, "Escribe el nombre igual para todo el equipo; los que ya existen aparecen como sugerencia. Si aún no tiene equipo, déjalo vacío.")));
+    const notaAdmin = h("p", { class: "nota-importante" }, "Un Superadmin entra al panel de organización y puede cambiar todo el contenido y las cuentas. Dale este rol solo al equipo organizador.");
+    function ajustarRol() {
+      const admin = rol.valor() === "superadmin";
+      datosParticipante.hidden = admin;
+      notaAdmin.hidden = !admin;
+    }
+    rol.addEventListener("change", ajustarRol);
+    ajustarRol();
+
+    const guardar = h("button", { type: "submit", class: "boton" }, editando ? "Guardar cambios" : "Crear cuenta");
     const dialogo = abrirDialogo(h("form", { class: "dialogo-cuerpo", novalidate: true,
       onsubmit: async (e) => {
         e.preventDefault();
         vaciar(zonaError);
+        const admin = rol.valor() === "superadmin";
+        if (!nombre.value.trim()) return zonaError.append(h("div", { class: "aviso-error" }, "Escribe el nombre completo."));
+        if (!admin && !categoria.valor()) return zonaError.append(h("div", { class: "aviso-error" }, "Elige la categoría: universidad o bachillerato."));
+        const cuerpo = { nombre: nombre.value, modalidad: modalidad.value, email: email.value };
+        if (!admin) { cuerpo.categoria = categoria.valor(); cuerpo.equipo = equipo.value; }
+        if (!esYo) cuerpo.rol = rol.valor();
+        guardar.disabled = true;
         try {
-          await api.pedir(`/admin/usuarios/${u.id}`, { metodo: "PUT", cuerpo: { nombre: nombre.value, email: email.value, modalidad: modalidad.value } });
-          dialogo.close();
-          await recargarUsuarios();
-          avisar("Cambios guardados");
-        } catch (error) { zonaError.append(bloqueError(error)); }
+          if (editando) {
+            await api.pedir(`/admin/usuarios/${u.id}`, { metodo: "PUT", cuerpo });
+            dialogo.close();
+            await recargarUsuarios();
+            avisar(cuerpo.rol && cuerpo.rol !== u.rol ? `Rol cambiado a ${ROLES[cuerpo.rol]}. Debe volver a iniciar sesión.` : "Cambios guardados");
+          } else {
+            cuerpo.usuario = usuario.value;
+            if (contrasena.value) cuerpo.contrasena = contrasena.value;
+            const r = await api.pedir("/admin/usuarios", { metodo: "POST", cuerpo });
+            dialogo.close();
+            await recargarUsuarios();
+            if (r.usuario.contrasena_generada) dialogoCredencial(r.usuario, "Cuenta creada");
+            else avisar("Cuenta creada con la contraseña que escribiste");
+          }
+        } catch (error) {
+          zonaError.append(bloqueError(error));
+        } finally { guardar.disabled = false; }
       } },
-      h("h2", {}, `Editar a ${u.nombre}`),
+      h("h2", {}, editando ? `Editar a ${u.nombre}` : "Agregar persona"),
       zonaError,
-      h("p", {}, `Usuario: ${u.usuario}`),
-      h("div", { class: "campo" }, h("label", { for: "e-nombre" }, "Nombre completo"), nombre),
-      h("div", { class: "rejilla-2" },
-        h("div", { class: "campo" }, h("label", { for: "e-email" }, "Correo"), email),
-        h("div", { class: "campo" }, h("label", { for: "e-modalidad" }, "Modalidad"), modalidad)),
+      h("div", { class: "campo" }, h("label", { for: "p-nombre" }, "Nombre completo"), nombre),
+      h("div", { class: "campo" }, h("label", { for: "p-usuario" }, "Usuario"), usuario,
+        editando && h("span", { class: "ayuda" }, "El usuario no se puede cambiar.")),
+      rol,
+      esYo && h("p", { class: "ayuda" }, "No puedes cambiar tu propio rol."),
+      notaAdmin,
+      datosParticipante,
+      h("details", { class: "mas-datos", open: editando && (u.email || u.modalidad === "virtual") ? true : null },
+        h("summary", {}, "Más datos (opcional): modalidad, correo", editando ? "" : " y contraseña"),
+        h("div", { class: "rejilla-2" },
+          h("div", { class: "campo" }, h("label", { for: "p-modalidad" }, "Modalidad"), modalidad),
+          h("div", { class: "campo" }, h("label", { for: "p-email" }, "Correo"), email)),
+        !editando && h("div", { class: "campo" }, h("label", { for: "p-contrasena" }, "Contraseña"), contrasena,
+          h("span", { class: "ayuda" }, "Déjala vacía y se genera una fácil de dictar, como cometa-orbita-4821."))),
       h("div", { class: "dialogo-acciones" },
-        u.id !== estado.usuario.id && h("button", { type: "button", class: "boton peligro secundario pequeno",
+        editando && !esYo && h("button", { type: "button", class: "boton peligro secundario pequeno separar-izq",
           onclick: async () => { dialogo.close(); await eliminarUsuario(u); } }, "Eliminar cuenta"),
         h("button", { type: "button", class: "boton discreto", onclick: () => dialogo.close() }, "Cancelar"),
-        h("button", { type: "submit", class: "boton" }, "Guardar cambios"))));
+        guardar)), { ancho: true });
+    nombre.focus();
   }
 
   async function restablecer(u) {
@@ -971,38 +1042,90 @@
     return filas.filter((f) => f.some((v) => v.trim()));
   }
 
+  // Encabezados aceptados para cada columna (sin tildes, en minúscula).
   const COLUMNAS = {
     nombre: ["nombre", "nombre completo", "nombres", "participante"],
+    categoria: ["categoria", "nivel", "nivel educativo", "tipo de participante"],
     usuario: ["usuario", "user", "username"],
+    rol: ["rol", "permisos", "perfil", "tipo de usuario"],
+    equipo: ["equipo", "nombre del equipo", "nombre equipo", "team"],
     email: ["email", "correo", "correo electronico", "e-mail", "mail"],
-    modalidad: ["modalidad", "tipo", "asistencia"],
+    modalidad: ["modalidad", "asistencia"],
   };
+  const ENCABEZADOS = ["nombre", "categoria", "usuario", "rol", "equipo", "email", "modalidad"];
+
+  function leerCategoria(valor) {
+    const v = clave(valor);
+    if (!v) return { valor: null };
+    if (v.startsWith("univ")) return { valor: "universidad" };
+    if (v.startsWith("bach") || v.includes("colegio") || v.startsWith("secund")) return { valor: "bachillerato" };
+    return { error: `categoría "${valor}" no reconocida (usa universidad o bachillerato)` };
+  }
+
+  function leerRol(valor) {
+    const v = clave(valor);
+    if (!v || v.startsWith("particip")) return { valor: "participante" };
+    if (v.includes("admin") || v.includes("permis")) return { valor: "superadmin" };
+    return { error: `rol "${valor}" no reconocido (usa participante o superadmin)` };
+  }
 
   function filasAUsuarios(filas) {
     if (filas.length < 2) throw new Error("La lista necesita una fila de encabezados y al menos una persona.");
-    const encabezados = filas[0].map((x) => sinTildes(x.trim().toLowerCase()));
+    const encabezados = filas[0].map(clave);
     const indice = {};
-    for (const [clave, nombres] of Object.entries(COLUMNAS)) {
-      indice[clave] = encabezados.findIndex((e) => nombres.includes(e));
-    }
-    if (indice.nombre < 0) throw new Error('No encontré la columna "nombre". La primera fila debe tener los encabezados: nombre, usuario, email, modalidad.');
+    for (const [campo, nombres] of Object.entries(COLUMNAS)) indice[campo] = encabezados.findIndex((e) => nombres.includes(e));
+    if (indice.nombre < 0) throw new Error(`No encontré la columna "nombre". La primera fila debe tener los encabezados: ${ENCABEZADOS.join(", ")}.`);
     const ocupados = new Set(estado.usuarios.map((u) => u.usuario));
-    return filas.slice(1).map((f) => {
+    const personas = [];
+    const problemas = [];
+    filas.slice(1).forEach((f, n) => {
       const valor = (k) => (indice[k] >= 0 ? (f[indice[k]] || "").trim() : "");
       const nombre = valor("nombre");
+      const cat = leerCategoria(valor("categoria"));
+      const rol = leerRol(valor("rol"));
       let usuario = valor("usuario").toLowerCase();
       if (!usuario) usuario = sugerirUsuario(nombre, ocupados);
       ocupados.add(usuario);
-      const modalidad = sinTildes(valor("modalidad").toLowerCase()).startsWith("virt") ? "virtual" : "presencial";
-      return { nombre, usuario, email: valor("email"), modalidad };
+      const fila = n + 2;  // número de fila como se ve en Excel (la 1 es el encabezado)
+      if (!nombre) problemas.push(`Fila ${fila}: falta el nombre.`);
+      if (cat.error) problemas.push(`Fila ${fila}: ${cat.error}.`);
+      if (rol.error) problemas.push(`Fila ${fila}: ${rol.error}.`);
+      if (rol.valor === "participante" && !cat.valor && !cat.error) problemas.push(`Fila ${fila} (${nombre || usuario}): falta la categoría.`);
+      const persona = { nombre, usuario, rol: rol.valor || "participante", equipo: valor("equipo"), email: valor("email"),
+        modalidad: clave(valor("modalidad")).startsWith("virt") ? "virtual" : "presencial" };
+      if (cat.valor) persona.categoria = cat.valor;
+      personas.push(persona);
     });
+    return { personas, problemas };
+  }
+
+  function plantillaCSV() {
+    const filas = [
+      ENCABEZADOS,
+      ["Valentina Gómez Restrepo", "universidad", "", "participante", "Los Cometas", "valentina@correo.com", "presencial"],
+      ["Mateo Álvarez", "bachillerato", "mateo.alvarez", "participante", "Los Cometas", "", "virtual"],
+      ["Laura Ospina", "", "laura.ospina", "superadmin", "", "", ""],
+    ];
+    return new Blob(["﻿" + filas.map((f) => f.join(";")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+  }
+
+  function resumenImportacion(personas) {
+    const part = personas.filter((p) => p.rol === "participante");
+    const uni = part.filter((p) => p.categoria === "universidad").length;
+    const bach = part.filter((p) => p.categoria === "bachillerato").length;
+    const equipos = new Set(part.filter((p) => p.equipo).map((p) => clave(p.equipo))).size;
+    const admins = personas.length - part.length;
+    return `En la lista: ${personas.length} ${personas.length === 1 ? "persona" : "personas"}. ` +
+      `${uni} de universidad y ${bach} de bachillerato, en ${equipos} ${equipos === 1 ? "equipo" : "equipos"}.` +
+      (admins ? ` ${admins} con permisos de Superadmin.` : "");
   }
 
   function dialogoImportar() {
-    let filas = [];
+    let personas = [];
     const zonaError = h("div");
-    const vista = h("p", { class: "ayuda" });
-    const texto = h("textarea", { id: "imp-texto", rows: "8", placeholder: "nombre;usuario;email;modalidad\nAna María López;;ana@correo.com;presencial\nLuis Pérez;luis.perez;;virtual",
+    const vista = h("div", { class: "vista-importar", "aria-live": "polite" });
+    const texto = h("textarea", { id: "imp-texto", rows: "7",
+      placeholder: `${ENCABEZADOS.join(";")}\nValentina Gómez;universidad;;participante;Los Cometas;;presencial\nMateo Álvarez;bachillerato;mateo.alvarez;participante;Los Cometas;;virtual`,
       oninput: () => actualizar(texto.value) });
     const archivo = h("input", { type: "file", id: "imp-archivo", accept: ".csv,.txt,text/csv",
       onchange: async (e) => { const f = e.target.files[0]; if (f) { texto.value = await f.text(); actualizar(texto.value); } } });
@@ -1010,41 +1133,66 @@
 
     function actualizar(valor) {
       vaciar(zonaError);
-      try {
-        filas = valor.trim() ? filasAUsuarios(parsearCSV(valor)) : [];
-        vista.textContent = filas.length ? `Listas para importar: ${filas.length} personas. Ejemplo: ${filas[0].nombre} quedará como ${filas[0].usuario}.` : "";
-        importar.disabled = !filas.length;
-        importar.textContent = filas.length ? `Importar ${filas.length} ${filas.length === 1 ? "persona" : "personas"}` : "Importar";
-      } catch (error) {
-        filas = [];
-        vista.textContent = "";
-        importar.disabled = true;
+      vaciar(vista);
+      personas = [];
+      importar.disabled = true;
+      importar.textContent = "Importar";
+      if (!valor.trim()) return;
+      let leido;
+      try { leido = filasAUsuarios(parsearCSV(valor)); } catch (error) {
         zonaError.append(h("div", { class: "aviso-error" }, error.message));
+        return;
+      }
+      if (leido.problemas.length) {
+        zonaError.append(h("div", { class: "aviso-error", role: "alert" }, "Corrige estas filas en tu hoja y vuelve a cargarla:",
+          h("ul", {}, leido.problemas.slice(0, 15).map((p) => h("li", {}, p))),
+          leido.problemas.length > 15 && h("p", {}, `…y ${leido.problemas.length - 15} más.`)));
+      }
+      vista.append(
+        h("p", { class: "ayuda" }, resumenImportacion(leido.personas)),
+        h("div", { class: "tabla-envoltura" }, h("table", { class: "credenciales" },
+          h("thead", {}, h("tr", {}, ["Nombre", "Categoría", "Usuario", "Rol", "Equipo"].map((t) => h("th", {}, t)))),
+          h("tbody", {}, leido.personas.slice(0, 6).map((p) => h("tr", {},
+            h("td", {}, p.nombre), h("td", {}, CATEGORIAS[p.categoria] || "—"), h("td", {}, p.usuario),
+            h("td", {}, ROLES[p.rol]), h("td", {}, p.equipo || "—")))))),
+        leido.personas.length > 6 && h("p", { class: "ayuda" }, `Se muestran las primeras 6 de ${leido.personas.length}.`));
+      if (!leido.problemas.length) {
+        personas = leido.personas;
+        importar.disabled = false;
+        importar.textContent = `Importar ${personas.length} ${personas.length === 1 ? "persona" : "personas"}`;
       }
     }
 
     const dialogo = abrirDialogo(h("form", { class: "dialogo-cuerpo", novalidate: true,
       onsubmit: async (e) => {
         e.preventDefault();
+        if (!personas.length) return;
         vaciar(zonaError);
         importar.disabled = true;
         importar.textContent = "Creando cuentas…";
         try {
-          const r = await api.pedir("/admin/usuarios/importar", { metodo: "POST", cuerpo: { usuarios: filas } });
+          const r = await api.pedir("/admin/usuarios/importar", { metodo: "POST", cuerpo: { usuarios: personas } });
           dialogo.close();
           await recargarUsuarios();
           resultadoImportacion(r.usuarios);
         } catch (error) {
           zonaError.append(bloqueError(error));
           importar.disabled = false;
-          importar.textContent = `Importar ${filas.length} personas`;
+          importar.textContent = `Importar ${personas.length} personas`;
         }
       } },
-      h("h2", {}, "Importar lista de participantes"),
-      h("p", {}, "Exporta tu hoja de inscritos (Excel o Google Sheets) como CSV o copia y pega las columnas aquí. Solo el nombre es obligatorio; si no pones usuario, se crea uno con nombre y apellido."),
+      h("h2", {}, "Importar lista de personas"),
+      h("p", {}, "Exporta tu hoja de inscritos (Excel o Google Sheets) como CSV, o copia y pega las columnas aquí. Las columnas son: ",
+        h("strong", {}, "nombre, categoría, usuario, rol y equipo"),
+        ", y opcionalmente email y modalidad. La categoría es universidad o bachillerato. El rol es participante o superadmin; si lo dejas vacío, queda como participante. Si no pones usuario, se crea uno con nombre y apellido."),
+      h("div", { class: "barra-acciones" },
+        h("button", { type: "button", class: "boton secundario pequeno",
+          onclick: () => guardarBlob(plantillaCSV(), "plantilla-participantes.csv") }, "Descargar plantilla"),
+        h("span", { class: "ayuda" }, "Ábrela en Excel, llénala y guárdala como CSV.")),
       zonaError,
       h("div", { class: "campo" }, h("label", { for: "imp-archivo" }, "Archivo CSV"), archivo),
-      h("div", { class: "campo" }, h("label", { for: "imp-texto" }, "O pega la lista"), texto, vista),
+      h("div", { class: "campo" }, h("label", { for: "imp-texto" }, "O pega la lista"), texto),
+      vista,
       h("div", { class: "dialogo-acciones" },
         h("button", { type: "button", class: "boton discreto", onclick: () => dialogo.close() }, "Cancelar"),
         importar)), { ancho: true });
@@ -1052,8 +1200,11 @@
 
   function csvCredenciales(usuarios) {
     const celda = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-    const lineas = [["nombre", "usuario", "contrasena", "modalidad", "email", "portal"].join(";")];
-    for (const u of usuarios) lineas.push([u.nombre, u.usuario, u.contrasena_generada, u.modalidad, u.email, URL_PORTAL].map(celda).join(";"));
+    const lineas = [["nombre", "categoria", "usuario", "contrasena", "rol", "equipo", "modalidad", "email", "portal"].join(";")];
+    for (const u of usuarios) {
+      lineas.push([u.nombre, u.categoria || "", u.usuario, u.contrasena_generada, u.rol, u.equipo, u.modalidad, u.email, URL_PORTAL]
+        .map(celda).join(";"));
+    }
     return new Blob(["﻿" + lineas.join("\r\n")], { type: "text/csv;charset=utf-8" });
   }
 
@@ -1063,8 +1214,9 @@
       h("h2", {}, `${usuarios.length} cuentas creadas`),
       h("p", { class: "nota-importante" }, "Descarga las credenciales ahora: las contraseñas no se vuelven a mostrar. Guarda el archivo en un lugar privado."),
       h("div", { class: "tabla-envoltura" }, h("table", { class: "credenciales" },
-        h("thead", {}, h("tr", {}, h("th", {}, "Nombre"), h("th", {}, "Usuario"), h("th", {}, "Contraseña"))),
-        h("tbody", {}, usuarios.map((u) => h("tr", {}, h("td", {}, u.nombre), h("td", {}, u.usuario), h("td", { class: "clave" }, u.contrasena_generada)))))),
+        h("thead", {}, h("tr", {}, ["Nombre", "Equipo", "Usuario", "Contraseña"].map((t) => h("th", {}, t)))),
+        h("tbody", {}, usuarios.map((u) => h("tr", {},
+          h("td", {}, u.nombre), h("td", {}, u.equipo || "—"), h("td", {}, u.usuario), h("td", { class: "clave" }, u.contrasena_generada)))))),
       h("div", { class: "dialogo-acciones" },
         h("button", { type: "button", class: "boton secundario", onclick: descargar }, "Descargar credenciales (CSV)"),
         h("button", { type: "button", class: "boton", onclick: () => dialogo.close() }, "Listo"))), { ancho: true });
@@ -1097,7 +1249,8 @@
 
     vaciar(zona,
       h("div", { class: "cifras" },
-        cifra(p.total, `participantes (${p.por_modalidad.presencial || 0} presenciales, ${p.por_modalidad.virtual || 0} virtuales)`),
+        cifra(p.total, `participantes: ${(p.por_categoria || {}).universidad || 0} de universidad y ${(p.por_categoria || {}).bachillerato || 0} de bachillerato`),
+        cifra(p.equipos ?? 0, `equipos${p.sin_equipo ? ` (${p.sin_equipo} ${p.sin_equipo === 1 ? "persona" : "personas"} sin equipo)` : ""}`),
         cifra(`${porcentaje} %`, `ya entraron al portal (${p.han_ingresado} de ${p.total})`),
         cifra(d.logins.total, "inicios de sesión en total"),
         cifra(d.descargas.reduce((a, x) => a + x.descargas, 0), "descargas de archivos")),

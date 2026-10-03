@@ -304,3 +304,42 @@ tr.inactivo td { opacity: 0.6; }
 .acciones-logo .barra-progreso { flex-basis: 100%; }
 @media (max-width: 520px) { .zona-logo-aliado { grid-template-columns: 1fr; } }
 .dialogo-acciones .separar-izq { margin-right: auto; }
+
+/* ---------------------------------------------------------------- personas: categoría, rol y equipo */
+
+.marca-estado.universidad { background: #e7e0fd; color: #4a2bb0; }
+.marca-estado.bachillerato { background: #fde6d8; color: #9a3c12; }
+@media (prefers-color-scheme: dark) {
+  .marca-estado.universidad { background: #2f2566; color: #cfc2ff; }
+  .marca-estado.bachillerato { background: #4a2a1a; color: #ffc29f; }
+}
+.sin-dato { color: var(--texto-suave); font-style: italic; }
+
+.segmentado { margin: 0; padding: 0; border: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; min-width: 0; }
+.segmentado legend { padding: 0; margin-bottom: 0.4rem; width: 100%; }
+.segmentado label {
+  flex: 1 1 11rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 46px;
+  padding: 0.55rem 0.85rem;
+  border: 1.5px solid var(--linea);
+  border-radius: var(--radio-s);
+  font-weight: 700;
+  cursor: pointer;
+}
+.segmentado input { width: 1.15rem; height: 1.15rem; accent-color: var(--accion); flex: none; }
+.segmentado label:has(input:checked) { border-color: var(--accion); background: var(--accion-suave); }
+.segmentado label:has(input:disabled) { opacity: 0.6; cursor: not-allowed; }
+.segmentado label:has(input:focus-visible) { outline: 3px solid var(--foco); outline-offset: 2px; }
+
+.datos-participante { display: grid; gap: 1rem; }
+.mas-datos { border-top: 1px solid var(--linea); padding-top: 0.75rem; }
+.mas-datos summary { cursor: pointer; font-weight: 700; color: var(--accion); min-height: 32px; }
+.mas-datos[open] summary { margin-bottom: 0.75rem; }
+.mas-datos .campo + .campo { margin-top: 1rem; }
+input[readonly] { background: var(--superficie-2); color: var(--texto-suave); }
+
+.vista-importar { display: grid; gap: 0.5rem; }
+.vista-importar:empty { display: none; }

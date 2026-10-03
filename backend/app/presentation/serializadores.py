@@ -12,6 +12,7 @@ def usuario(u: Usuario) -> dict:
     return {
         "id": u.id, "usuario": u.usuario, "nombre": u.nombre, "email": u.email,
         "rol": u.rol.value, "modalidad": u.modalidad.value, "activo": u.activo,
+        "categoria": u.categoria.value if u.categoria else None, "equipo": u.equipo,
         "creado_en": _fecha(u.creado_en), "ultimo_login": _fecha(u.ultimo_login),
     }
 

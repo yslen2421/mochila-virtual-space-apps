@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     email          TEXT    NOT NULL DEFAULT '',
     rol            TEXT    NOT NULL CHECK (rol IN ('participante', 'superadmin')),
     modalidad      TEXT    NOT NULL DEFAULT 'presencial' CHECK (modalidad IN ('presencial', 'virtual')),
+    categoria      TEXT    CHECK (categoria IN ('universidad', 'bachillerato')),
+    equipo         TEXT    NOT NULL DEFAULT '',
     password_hash  TEXT    NOT NULL,
     activo         INTEGER NOT NULL DEFAULT 1,
     version_token  INTEGER NOT NULL DEFAULT 1,

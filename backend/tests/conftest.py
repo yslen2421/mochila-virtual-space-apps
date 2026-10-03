@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from app import create_app  # noqa: E402
 from app.application.comandos import CrearUsuario  # noqa: E402
 from app.configuracion import Configuracion  # noqa: E402
-from app.domain.entidades import Rol  # noqa: E402
+from app.domain.entidades import Categoria, Rol  # noqa: E402
 
 
 @pytest.fixture
@@ -21,7 +21,8 @@ def app(tmp_path):
     app = create_app(config)
     c = app.extensions["contenedor"]
     c.usuarios.crear(CrearUsuario(usuario="admin", nombre="Admin", rol=Rol.SUPERADMIN, contrasena="admin-secreta"))
-    c.usuarios.crear(CrearUsuario(usuario="ana", nombre="Ana", contrasena="ana-secreta"))
+    c.usuarios.crear(CrearUsuario(usuario="ana", nombre="Ana", contrasena="ana-secreta",
+                                  categoria=Categoria.UNIVERSIDAD, equipo="Los Cometas"))
     return app
 
 

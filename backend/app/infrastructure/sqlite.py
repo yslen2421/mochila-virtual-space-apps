@@ -14,7 +14,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from ..domain.entidades import Aliado, Archivo, GrupoAliados, Item, Modalidad, Rol, Seccion, TipoItem, Usuario
+from ..domain.entidades import Aliado, Archivo, Categoria, GrupoAliados, Item, Modalidad, Rol, Seccion, TipoItem, Usuario
 
 ESQUEMA = Path(__file__).with_name("esquema.sql")
 
@@ -34,6 +34,24 @@ class BaseDatos:
         Path(ruta).parent.mkdir(parents=True, exist_ok=True)
         # executescript maneja su propia transacción
         self.conexion().executescript(ESQUEMA.read_text(encoding="utf-8"))
+        self._migrar()
+
+    # Columnas agregadas después de la primera versión. Las bases que ya existen
+    # (con participantes y contenido cargados) las reciben al arrancar, sin perder nada.
+    MIGRACIONES = {
+        "usuarios": {
+            "categoria": "TEXT CHECK (categoria IN ('universidad', 'bachillerato'))",
+            "equipo": "TEXT NOT NULL DEFAULT ''",
+        },
+    }
+
+    def _migrar(self) -> None:
+        conn = self.conexion()
+        for tabla, columnas in self.MIGRACIONES.items():
+            existentes = {f["name"] for f in conn.execute(f"PRAGMA table_info({tabla})")}
+            for columna, definicion in columnas.items():
+                if columna not in existentes:
+                    conn.execute(f"ALTER TABLE {tabla} ADD COLUMN {columna} {definicion}")
 
     def conexion(self) -> sqlite3.Connection:
         conn = getattr(self._local, "conn", None)
@@ -80,6 +98,7 @@ class RepositorioUsuariosSqlite:
         return Usuario(
             id=f["id"], usuario=f["usuario"], nombre=f["nombre"], email=f["email"],
             rol=Rol(f["rol"]), modalidad=Modalidad(f["modalidad"]),
+            categoria=Categoria(f["categoria"]) if f["categoria"] else None, equipo=f["equipo"] or "",
             password_hash=f["password_hash"], activo=bool(f["activo"]),
             version_token=f["version_token"], creado_en=_a_fecha(f["creado_en"]),
             ultimo_login=_a_fecha(f["ultimo_login"]),
@@ -99,18 +118,19 @@ class RepositorioUsuariosSqlite:
 
     def _guardar_en(self, c: sqlite3.Connection, u: Usuario) -> Usuario:
         valores = (u.usuario, u.nombre, u.email, u.rol.value, u.modalidad.value,
+                   u.categoria.value if u.categoria else None, u.equipo,
                    u.password_hash, int(u.activo), u.version_token)
         if u.id is None:
             cur = c.execute(
-                """INSERT INTO usuarios (usuario, nombre, email, rol, modalidad, password_hash,
-                   activo, version_token, creado_en) VALUES (?,?,?,?,?,?,?,?,?)""",
+                """INSERT INTO usuarios (usuario, nombre, email, rol, modalidad, categoria, equipo,
+                   password_hash, activo, version_token, creado_en) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
                 (*valores, _ahora_iso()),
             )
             u.id = cur.lastrowid
         else:
             c.execute(
-                """UPDATE usuarios SET usuario=?, nombre=?, email=?, rol=?, modalidad=?,
-                   password_hash=?, activo=?, version_token=? WHERE id=?""",
+                """UPDATE usuarios SET usuario=?, nombre=?, email=?, rol=?, modalidad=?, categoria=?,
+                   equipo=?, password_hash=?, activo=?, version_token=? WHERE id=?""",
                 (*valores, u.id),
             )
         return u

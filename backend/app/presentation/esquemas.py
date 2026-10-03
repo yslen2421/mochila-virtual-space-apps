@@ -14,7 +14,7 @@ from ..application.comandos import (
     CrearSeccion,
     CrearUsuario,
 )
-from ..domain.entidades import Modalidad, Rol, TipoItem
+from ..domain.entidades import Categoria, Modalidad, Rol, TipoItem
 from ..domain.errores import ErrorValidacion
 
 
@@ -137,7 +137,8 @@ def crear_usuario(datos: Any) -> CrearUsuario:
     return CrearUsuario(**_sin_nulos(
         usuario=_texto(d, "usuario", True, 100), nombre=_texto(d, "nombre", True, 120),
         email=_texto(d, "email", maximo=200), modalidad=_enum(d, "modalidad", Modalidad),
-        rol=_enum(d, "rol", Rol), contrasena=_texto(d, "contrasena", maximo=200) or None))
+        rol=_enum(d, "rol", Rol), categoria=_enum(d, "categoria", Categoria) if d.get("categoria") else None,
+        equipo=_texto(d, "equipo", maximo=120), contrasena=_texto(d, "contrasena", maximo=200) or None))
 
 
 def importar_usuarios(datos: Any) -> list[CrearUsuario]:
@@ -148,9 +149,7 @@ def importar_usuarios(datos: Any) -> list[CrearUsuario]:
     comandos, errores = [], []
     for n, fila in enumerate(filas, start=1):
         try:
-            if isinstance(fila, dict):
-                fila = {**fila, "rol": "participante"}  # la importación masiva solo crea participantes
-            comandos.append(crear_usuario(fila))
+            comandos.append(crear_usuario(fila))  # el rol viene en la fila (participante si no se indica)
         except ErrorValidacion as e:
             usuario = fila.get("usuario") if isinstance(fila, dict) else None
             errores.append({"fila": n, "usuario": usuario, "error": e.mensaje})
@@ -163,7 +162,9 @@ def actualizar_usuario(datos: Any) -> ActualizarUsuario:
     d = _cuerpo(datos)
     return ActualizarUsuario(
         nombre=_texto(d, "nombre", maximo=120), email=_texto(d, "email", maximo=200),
-        modalidad=_enum(d, "modalidad", Modalidad), activo=_booleano(d, "activo"))
+        modalidad=_enum(d, "modalidad", Modalidad), activo=_booleano(d, "activo"),
+        categoria=_enum(d, "categoria", Categoria) if d.get("categoria") else None,
+        equipo=_texto(d, "equipo", maximo=120), rol=_enum(d, "rol", Rol))
 
 
 # ---------------------------------------------------------------- logos y aliados

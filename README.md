@@ -54,10 +54,13 @@ Todo lo que importa (base de datos, archivos subidos, respaldos) vive en la carp
    y reemplaza: fechas y enlaces del **Cronograma**, el paso a paso de **AWS**, etc. Para
    wallpapers y souvenirs usa **Subir varios archivos**: cada archivo se vuelve un ítem.
    Lo que no esté listo, desmárcalo como visible.
-3. **Carga a los participantes.** En *Participantes → Importar lista*, sube el CSV de
-   inscritos exportado de Excel o Google Sheets. Columnas: `nombre` (obligatoria),
-   `usuario`, `email`, `modalidad` (`presencial` o `virtual`). Si no hay usuario, se arma
-   uno con nombre y primer apellido (`juan.zapata`).
+3. **Carga a los participantes.** En *Participantes → Importar lista* pulsa **Descargar
+   plantilla**, llénala en Excel o Google Sheets y súbela como CSV. Columnas:
+   `nombre` (obligatoria), `categoria` (`universidad` o `bachillerato`, obligatoria para
+   participantes), `usuario`, `rol` (`participante` o `superadmin`; vacío = participante),
+   `equipo`, y opcionales `email` y `modalidad` (`presencial` o `virtual`). Si no hay usuario,
+   se arma uno con nombre y primer apellido (`juan.zapata`). Si alguna fila tiene un error,
+   el panel te dice cuál antes de importar y no crea a nadie hasta que esté todo bien.
 4. **Descarga el CSV de credenciales** que aparece al terminar (las contraseñas no se
    vuelven a mostrar) y envíaselas a cada persona. Para una sola persona, el panel arma
    el mensaje de WhatsApp listo para copiar.
@@ -250,7 +253,7 @@ Por defecto Flask sirve también el front (más simple de mantener). Si prefiere
 
 ```bash
 cd backend
-python -m pytest            # 28 pruebas: dominio, permisos, flujo completo, sesiones, logos
+python -m pytest            # 37 pruebas: dominio, permisos, flujo completo, sesiones, logos, personas
 ```
 
 ## 7. Ideas para después

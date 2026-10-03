@@ -19,6 +19,11 @@ class Modalidad(str, Enum):
     VIRTUAL = "virtual"
 
 
+class Categoria(str, Enum):
+    UNIVERSIDAD = "universidad"
+    BACHILLERATO = "bachillerato"
+
+
 class TipoItem(str, Enum):
     TEXTO = "texto"          # Párrafos de texto (guías, anuncios, FAQ…)
     ENLACE = "enlace"        # Un link externo (Zoom, Meet, datos NASA, AWS…)
@@ -36,6 +41,8 @@ class Usuario:
     password_hash: str
     email: str = ""
     modalidad: Modalidad = Modalidad.PRESENCIAL
+    categoria: Categoria | None = None   # universidad o bachillerato (obligatoria para participantes)
+    equipo: str = ""                     # nombre del equipo del hackathon
     activo: bool = True
     version_token: int = 1          # sube al resetear contraseña o desactivar → invalida sesiones
     creado_en: datetime | None = None

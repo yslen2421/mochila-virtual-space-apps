@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from ..domain.entidades import Rol, Usuario
 from ..domain.errores import Conflicto, ErrorValidacion, NoEncontrado
 from ..domain.puertos import HasherContrasenas, RepositorioUsuarios
-from ..domain.reglas import validar_contrasena, validar_usuario
+from ..domain.reglas import normalizar_equipo, validar_contrasena, validar_datos_participante, validar_usuario
 from .comandos import ActualizarUsuario, CrearUsuario
 
 # Palabras para contraseñas fáciles de dictar en la sede (ej. "cometa-orbita-4821").
@@ -55,8 +55,10 @@ class ServicioUsuarios:
         usuario = Usuario(
             id=None, usuario=validar_usuario(cmd.usuario), nombre=nombre[:120], rol=cmd.rol,
             email=cmd.email.strip()[:200], modalidad=cmd.modalidad,
+            categoria=cmd.categoria, equipo=normalizar_equipo(cmd.equipo),
             password_hash=self._hasher.hashear(contrasena),
         )
+        validar_datos_participante(usuario)
         return usuario, generada
 
     def crear(self, cmd: CrearUsuario) -> UsuarioConContrasena:
@@ -77,6 +79,8 @@ class ServicioUsuarios:
                 nombre_usuario = validar_usuario(cmd.usuario)
                 if not cmd.nombre.strip():
                     raise ErrorValidacion("El nombre es obligatorio.")
+                if cmd.rol == Rol.PARTICIPANTE and cmd.categoria is None:
+                    raise ErrorValidacion("Falta la categoría (universidad o bachillerato).")
                 if nombre_usuario in vistos:
                     raise Conflicto("Usuario repetido en la lista.")
                 if self._usuarios.por_usuario(nombre_usuario):
@@ -102,6 +106,18 @@ class ServicioUsuarios:
             usuario.email = cmd.email.strip()[:200]
         if cmd.modalidad is not None:
             usuario.modalidad = cmd.modalidad
+        if cmd.categoria is not None:
+            usuario.categoria = cmd.categoria
+        if cmd.equipo is not None:
+            usuario.equipo = normalizar_equipo(cmd.equipo)
+        if cmd.rol is not None and cmd.rol != usuario.rol:
+            if usuario.id == actor.id:
+                raise ErrorValidacion("No puedes cambiar tu propio rol.", {"campo": "rol"})
+            if usuario.rol == Rol.SUPERADMIN and sum(u.rol == Rol.SUPERADMIN for u in self.listar()) <= 1:
+                raise ErrorValidacion("Debe quedar al menos un Superadmin.", {"campo": "rol"})
+            usuario.rol = cmd.rol
+            usuario.invalidar_sesiones()  # sus permisos cambiaron: que vuelva a entrar
+            validar_datos_participante(usuario)
         if cmd.activo is not None and cmd.activo != usuario.activo:
             usuario.activo = cmd.activo
             if not cmd.activo:
