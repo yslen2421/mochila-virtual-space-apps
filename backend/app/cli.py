@@ -2,6 +2,7 @@
 
     flask --app wsgi inicializar           # crea el Superadmin (desde .env) y las secciones base
     flask --app wsgi crear-superadmin      # crea otro Superadmin de forma interactiva
+    flask --app wsgi cambiar-contrasena    # cambia la contraseña de una cuenta (si se olvidó)
     flask --app wsgi sembrar               # carga las secciones de ejemplo de la mochila
     flask --app wsgi respaldar             # copia de seguridad de la base de datos
     flask --app wsgi limpiar-archivos      # borra archivos que ningún ítem usa
@@ -122,6 +123,18 @@ def registrar_comandos(app: Flask) -> None:
             click.echo(f"✔ Superadmin '{usuario}' creado.")
         except ErrorDominio as e:
             raise click.ClickException(e.mensaje)
+
+    @app.cli.command("cambiar-contrasena")
+    @click.option("--usuario", prompt="Usuario", default="admin", show_default=True)
+    @click.option("--contrasena", prompt="Nueva contraseña", hide_input=True, confirmation_prompt="Repítela")
+    def cambiar_contrasena(usuario, contrasena):
+        """Cambia la contraseña de cualquier cuenta (sirve si se olvidó la del admin)."""
+        try:
+            u = _c().usuarios.fijar_contrasena(usuario, contrasena)
+        except ErrorDominio as e:
+            raise click.ClickException(e.mensaje)
+        _c().auth.desbloquear(u.usuario)
+        click.echo(f"✔ Contraseña de '{u.usuario}' cambiada. Ya puedes entrar.")
 
     @app.cli.command("sembrar")
     def sembrar():

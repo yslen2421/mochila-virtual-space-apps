@@ -115,6 +115,17 @@ class ServicioUsuarios:
         usuario.invalidar_sesiones()
         return UsuarioConContrasena(self._usuarios.guardar(usuario), nueva)
 
+    def fijar_contrasena(self, nombre_usuario: str, contrasena: str) -> Usuario:
+        """Pone una contraseña elegida (uso desde la consola del servidor) y cierra sus sesiones."""
+        usuario = self._usuarios.por_usuario(validar_usuario(nombre_usuario))
+        if not usuario:
+            raise NoEncontrado(f"No existe el usuario '{nombre_usuario}'.")
+        validar_contrasena(contrasena)
+        usuario.password_hash = self._hasher.hashear(contrasena)
+        usuario.activo = True
+        usuario.invalidar_sesiones()
+        return self._usuarios.guardar(usuario)
+
     def eliminar(self, actor: Usuario, usuario_id: int) -> None:
         usuario = self._obtener(usuario_id)
         if usuario.id == actor.id:

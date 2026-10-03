@@ -73,6 +73,10 @@ class ServicioAutenticacion:
         self._actividad.registrar("login", encontrado.id)
         return self._tokens.emitir(encontrado), encontrado
 
+    def desbloquear(self, usuario: str) -> None:
+        """Borra los intentos fallidos de un usuario (tras cambiarle la contraseña)."""
+        self._intentos.limpiar(f"u:{normalizar_usuario(usuario)}")
+
     def usuario_de_token(self, token: str) -> Usuario:
         datos = self._tokens.leer(token)  # lanza NoAutenticado si es inválido o venció
         usuario = self._usuarios.por_id(int(datos["sub"]))

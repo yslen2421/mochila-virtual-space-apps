@@ -72,6 +72,17 @@ Todo lo que importa (base de datos, archivos subidos, respaldos) vive en la carp
 - **Anuncios:** agrega un ítem de texto en la sección Anuncios; se ve al instante.
 - **Estadísticas:** cuántas personas ya entraron, qué secciones visitan y qué descargan.
 
+### ¿Se olvidó la contraseña del admin?
+
+Desde la terminal del servidor (o del computador, dentro de `backend/`):
+
+```bash
+docker compose exec app flask --app wsgi cambiar-contrasena    # con Docker
+flask --app wsgi cambiar-contrasena                             # sin Docker
+```
+
+Pide el usuario y la nueva contraseña, y quita el bloqueo por intentos fallidos.
+
 ### Respaldos
 
 ```bash
