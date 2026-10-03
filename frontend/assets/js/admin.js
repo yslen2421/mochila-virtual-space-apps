@@ -6,7 +6,7 @@
 
 (() => {
   const app = document.getElementById("app");
-  const sesion = new Sesion("panel.token");
+  const sesion = new Sesion(CLAVE_SESION);
   const api = crearClienteApi(sesion, (mensaje) => mostrarIngreso(mensaje));
   const URL_PORTAL = new URL("../", location.href).href;
 
@@ -27,7 +27,8 @@
     if (!sesion.token) return mostrarIngreso();
     try {
       const { usuario } = await api.pedir("/auth/yo");
-      if (usuario.rol !== "superadmin") { sesion.cerrar(); return mostrarIngreso(mensajeNoAdmin()); }
+      // Un participante con sesión abierta no se desconecta: solo se le muestra el camino a su mochila.
+      if (usuario.rol !== "superadmin") return mostrarIngreso(avisoNoAdmin(usuario.nombre));
       estado.usuario = usuario;
       montar();
     } catch (error) {
@@ -35,8 +36,11 @@
     }
   }
 
-  function mensajeNoAdmin() {
-    return "Esta cuenta es de participante y no tiene acceso al panel. Entra por el portal de participantes.";
+  function avisoNoAdmin(nombre) {
+    return [
+      `${nombre ? `${nombre.split(" ")[0]}, tu` : "Tu"} cuenta es de participante: no tiene acceso al panel de organización. `,
+      h("a", { href: URL_PORTAL }, "Ir a mi mochila"),
+    ];
   }
 
   function mostrarIngreso(mensaje) {
@@ -44,12 +48,13 @@
     vaciar(app, pantallaIngreso({
       titulo: "Panel de organización de la mochila virtual",
       subtitulo: "Entra como Superadmin",
-      nota: "Solo para el equipo organizador. Los participantes entran por el portal principal.",
+      nota: "Solo para el equipo organizador.",
+      enlace: { texto: "¿Eres participante? Entra a tu mochila", href: URL_PORTAL },
       mensajeInicial: mensaje,
       alEntrar: async (usuario, contrasena) => {
         const r = await api.pedir("/auth/login", { metodo: "POST", cuerpo: { usuario, contrasena } });
-        if (r.usuario.rol !== "superadmin") throw new ErrorApi("SIN_PERMISO", mensajeNoAdmin());
-        sesion.token = r.token;
+        sesion.token = r.token;  // la sesión sirve también en el portal
+        if (r.usuario.rol !== "superadmin") return mostrarIngreso(avisoNoAdmin(r.usuario.nombre));
         estado.usuario = r.usuario;
         montar();
       },
@@ -71,7 +76,7 @@
         h("span", { class: "marca" }, h("img", { src: "../assets/img/insignia.svg", alt: "" }), "Panel de organización"),
         pestanas,
         h("div", { class: "acciones-banda" },
-          h("a", { href: URL_PORTAL, target: "_blank", rel: "noopener" }, "Ver portal"),
+          h("a", { href: URL_PORTAL }, "Ver portal"),
           h("button", { type: "button", class: "boton discreto pequeno", onclick: salir }, "Salir")))),
       principal);
     cambiarPestana(estado.pestana);

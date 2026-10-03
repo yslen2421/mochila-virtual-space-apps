@@ -8,6 +8,10 @@ const API_BASE = (window.PORTAL_CONFIG && window.PORTAL_CONFIG.apiBase) || "/api
 
 /* ---------------------------------------------------------------- sesión */
 
+/* Portal y panel comparten la misma sesión: quien entra con la cuenta de
+   Superadmin en uno puede pasar al otro sin volver a escribir la contraseña. */
+const CLAVE_SESION = "mochila.token";
+
 class Sesion {
   constructor(clave) { this.clave = clave; }
   get token() { try { return localStorage.getItem(this.clave); } catch { return null; } }
@@ -283,7 +287,7 @@ async function copiarTexto(texto) {
 
 /* ---------------------------------------------------------------- pantalla de ingreso */
 
-function pantallaIngreso({ titulo, subtitulo, nota, mensajeInicial, alEntrar }) {
+function pantallaIngreso({ titulo, subtitulo, nota, enlace, mensajeInicial, alEntrar }) {
   const plantilla = document.getElementById("plantilla-espiral");
   const errorZona = h("div", { "aria-live": "assertive" });
   const usuario = h("input", { type: "text", id: "usuario", name: "usuario", autocomplete: "username",
@@ -329,7 +333,8 @@ function pantallaIngreso({ titulo, subtitulo, nota, mensajeInicial, alEntrar }) 
       h("div", { class: "fila-etiqueta" }, h("label", { for: "contrasena" }, "Contraseña"), verContrasena),
       contrasena),
     boton,
-    nota && h("p", { class: "nota" }, nota));
+    nota && h("p", { class: "nota" }, nota),
+    enlace && h("p", { class: "nota" }, h("a", { href: enlace.href }, enlace.texto)));
 
   const arte = h("div", { class: "ingreso-arte" });
   if (plantilla) arte.append(plantilla.content.cloneNode(true));

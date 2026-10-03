@@ -6,7 +6,7 @@
 
 (() => {
   const app = document.getElementById("app");
-  const sesion = new Sesion("mochila.token");
+  const sesion = new Sesion(CLAVE_SESION);
   const api = crearClienteApi(sesion, (mensaje) => mostrarIngreso(mensaje));
 
   const estado = { usuario: null, indice: null, temporizador: null };
@@ -35,6 +35,7 @@
       titulo: "Tu mochila para el NASA Space Apps Challenge",
       subtitulo: "Entra a tu mochila",
       nota: "Recibiste tu usuario y contraseña de la organización. Si no los tienes o los olvidaste, escríbele al equipo de Ola Fibonacci.",
+      enlace: { texto: "¿Eres del equipo organizador? Entra al panel de organización", href: "admin/" },
       mensajeInicial: mensaje,
       alEntrar: async (usuario, contrasena) => {
         const r = await api.pedir("/auth/login", { metodo: "POST", cuerpo: { usuario, contrasena } });
