@@ -153,7 +153,7 @@ PATRON_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def validar_email(email: str) -> str:
-    """Correo opcional; si viene, debe tener forma de correo (sirve para recuperar la contraseña)."""
+    """Correo opcional de contacto; si viene, debe tener forma de correo."""
     email = (email or "").strip()
     if email and (len(email) > 200 or not PATRON_EMAIL.match(email)):
         raise ErrorValidacion(f"El correo «{email}» no parece válido.", {"campo": "email"})

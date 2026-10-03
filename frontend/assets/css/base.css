@@ -443,44 +443,4 @@ dialog.ancho { width: min(820px, calc(100vw - 24px)); }
   overflow-wrap: anywhere;
 }
 
-/* ---------------------------------------------------------------- "¿Olvidaste tu contraseña?" */
-
-.enlace-boton {
-  justify-self: start;
-  padding: 0.35rem 0;
-  border: 0;
-  background: none;
-  color: var(--enlace, var(--accion));
-  font: inherit;
-  font-size: var(--t-sm);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-  cursor: pointer;
-}
-.enlace-boton:hover { text-decoration-thickness: 2px; }
-/* Pantalla del enlace del correo: misma tarjeta que el formulario de ingreso. */
-.ingreso-formulario .form-clave {
-  width: 100%;
-  max-width: 400px;
-  display: grid;
-  gap: 1rem;
-  align-content: start;
-  padding: 1.5rem;
-  border-radius: var(--radio-m);
-  background: rgba(26, 20, 66, 0.92);
-  border: 1px solid rgba(185, 166, 255, 0.22);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
-}
-.ingreso-formulario .form-clave form,
-.ingreso-formulario .form-clave .contenido-clave {
-  display: grid;
-  gap: 1rem;
-  padding: 0;
-  max-width: none;
-  background: none;
-  border: 0;
-  box-shadow: none;
-  backdrop-filter: none;
-}
-.form-clave .boton { width: 100%; }
 .fila-etiqueta label { white-space: nowrap; }

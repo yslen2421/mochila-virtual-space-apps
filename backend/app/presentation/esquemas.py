@@ -188,27 +188,8 @@ def datos_aliado(datos: Any, requerido: bool):
                        archivo_id=_entero(d, "archivo_id"), quitar_logo=quitar)
 
 
-# ---------------------------------------------------------------- recuperar contraseña
-
-def solicitud_olvido(datos: Any) -> str:
-    return _texto(_cuerpo(datos), "identificador", True, 200)
-
-
-def codigo_enlace(datos: Any) -> str:
-    return _texto(_cuerpo(datos), "codigo", True, 200)
-
-
-def restablecimiento(datos: Any) -> tuple[str, str]:
-    d = _cuerpo(datos)
-    return _texto(d, "codigo", True, 200), _texto(d, "nueva", True, 200)
-
-
 def contrasena_opcional(datos: Any) -> str | None:
     """Cuerpo opcional de "nueva contraseña" del admin: {contrasena} o vacío para generar una."""
     if datos is None:
         return None
     return _texto(_cuerpo(datos), "contrasena", maximo=200) or None
-
-
-def destino_prueba(datos: Any) -> str | None:
-    return _texto(_cuerpo(datos or {}), "destino", maximo=200)

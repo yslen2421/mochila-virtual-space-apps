@@ -69,46 +69,14 @@ Todo lo que importa (base de datos, archivos subidos, respaldos) vive en la carp
 
 - **"Lo próximo"** aparece arriba del portal: la actividad en curso o la siguiente, con el
   botón para entrar a la transmisión. Se actualiza solo cada minuto.
-- **¿Alguien olvidó la contraseña?** Búscalo en *Participantes → Nueva contraseña*. Su
-  sesión anterior se cierra.
+- **¿Alguien olvidó la contraseña?** Búscalo en *Participantes → Nueva contraseña*: genera una
+  o escribe la que quieras. Su sesión anterior se cierra.
 - **¿Una cuenta no debería entrar?** *Desactivar* la saca de inmediato.
 - **Anuncios:** agrega un ítem de texto en la sección Anuncios; se ve al instante.
 - **Logos:** en *Logos y aliados* sube el logo del evento (aparece arriba en el portal y en la
   pantalla de ingreso) y los logos de organizadores, patrocinadores y divulgadores, que se
   muestran al final de la página de inicio. Puedes crear más grupos, renombrarlos y ordenarlos.
 - **Estadísticas:** cuántas personas ya entraron, qué secciones visitan y qué descargan.
-
-### Contraseñas olvidadas
-
-- **La persona misma:** en la pantalla de ingreso pulsa *¿Olvidaste tu contraseña?*, escribe su
-  usuario o correo y le llega un enlace para elegir una nueva (sirve una vez y por 1 hora).
-  Necesita tener correo registrado; el filtro *Sin correo* de Participantes muestra quiénes no.
-- **Un Superadmin:** en *Participantes → Nueva contraseña* elige generar una o escribirla él.
-
-### Correo (para la recuperación de contraseñas)
-
-Mientras no lo configures, los correos no salen: se guardan como archivos `.eml` en
-`datos/correos/` (en tu computador, `backend/data/correos/`). Se abren con Outlook o el Bloc
-de notas, y sirven para probar el enlace.
-
-Para enviarlos de verdad con un Gmail de la organización:
-
-1. En esa cuenta de Google activa la **verificación en 2 pasos**.
-2. Entra a https://myaccount.google.com/apppasswords y crea una contraseña de aplicación
-   (por ejemplo, "Mochila virtual"). Te muestra 16 letras.
-3. En el `.env` pon:
-   ```
-   SMTP_HOST=smtp.gmail.com
-   SMTP_PUERTO=587
-   SMTP_SEGURIDAD=starttls
-   SMTP_USUARIO=tucorreo@gmail.com
-   SMTP_CONTRASENA=las16letras
-   CORREO_REMITENTE=Mochila virtual Space Apps <tucorreo@gmail.com>
-   ```
-4. Reinicia el portal y en *Participantes* pulsa **Enviar correo de prueba**.
-
-Gmail permite unos 500 correos al día; para el evento sobra. Cualquier otro proveedor con SMTP
-(Outlook, Brevo, Mailgun, Amazon SES…) sirve igual cambiando esos datos.
 
 ### ¿Se olvidó la contraseña del admin?
 
@@ -173,10 +141,6 @@ python backend/pruebas_carga.py --url http://localhost:5000 --clave CLAVE_ADMIN 
   (`/auth/login-panel`), que solo abre sesión a cuentas Superadmin; un participante con sesión
   que escribe `/admin/` vuelve a su mochila, y todas las rutas `/admin` le responden "sin
   permiso" (hay una prueba que las recorre todas).
-- **Recuperación por correo segura:** el enlace lleva un código aleatorio de un solo uso que
-  vence en 1 hora (en la base solo se guarda su huella SHA-256); deja de servir si la
-  contraseña cambia por otro camino; la respuesta no revela si una cuenta existe; máximo 3
-  correos por hora por cuenta; el enlace usa siempre el dominio configurado.
 - Contraseñas guardadas con **scrypt** (nunca en texto plano). Mínimo 8 caracteres.
 - Sesión con **JWT firmado** (24 h). Cada usuario tiene una versión de sesión: restablecer
   la contraseña, cambiarla o desactivar la cuenta **cierra todas sus sesiones al instante**.
@@ -272,10 +236,6 @@ Todas las respuestas de error tienen la misma forma:
 | POST, PUT, DELETE | `/admin/aliados/grupos[/{id}]` | superadmin | Crear, renombrar, borrar grupos (`PUT …/grupos/orden` reordena) |
 | POST | `/admin/aliados/grupos/{id}/aliados` | superadmin | `{nombre, url, archivo_id}` (`PUT …/aliados/orden` reordena) |
 | PUT, DELETE | `/admin/aliados/{id}` | superadmin | Editar / borrar un aliado |
-| POST | `/auth/olvide-contrasena` | todos | `{identificador}` (usuario o correo); responde igual exista o no la cuenta |
-| POST | `/auth/restablecer/verificar` | todos | `{codigo}` del enlace del correo → nombre de la cuenta |
-| POST | `/auth/restablecer` | todos | `{codigo, nueva}` → nueva contraseña y sesión iniciada |
-| GET, POST | `/admin/correo`, `/admin/correo/prueba` | superadmin | Estado del correo / enviar uno de prueba |
 | GET | `/salud` | todos | Para monitoreo |
 
 Tipos de ítem: `texto`, `enlace`, `archivo`, `imagen`, `evento` (fecha, hora de inicio y
@@ -293,7 +253,7 @@ Por defecto Flask sirve también el front (más simple de mantener). Si prefiere
 
 ```bash
 cd backend
-python -m pytest            # 50 pruebas: dominio, permisos, sesiones, logos, personas, recuperación por correo
+python -m pytest            # 37 pruebas: dominio, permisos, flujo completo, sesiones, logos, personas
 ```
 
 ## 7. Ideas para después

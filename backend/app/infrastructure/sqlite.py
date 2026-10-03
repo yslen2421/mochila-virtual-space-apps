@@ -150,10 +150,6 @@ class RepositorioUsuariosSqlite:
         with self._db.transaccion() as c:
             c.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
 
-    def por_email(self, email: str) -> list[Usuario]:
-        return [self._a_entidad(f) for f in self._db.consultar(
-            "SELECT * FROM usuarios WHERE lower(email) = lower(?) ORDER BY id", (email.strip(),))]
-
     def registrar_login(self, usuario_id: int, momento: datetime) -> None:
         with self._db.transaccion() as c:
             c.execute("UPDATE usuarios SET ultimo_login = ? WHERE id = ?",
@@ -414,28 +410,6 @@ class RepositorioAliadosSqlite:
     def siguiente_orden_aliado(self, grupo_id: int) -> int:
         return self._db.uno("SELECT COALESCE(MAX(orden), -1) + 1 AS n FROM aliados WHERE grupo_id = ?",
                             (grupo_id,))["n"]
-
-
-# ---------------------------------------------------------------- recuperación de contraseña
-
-class RepositorioRestablecimientosSqlite:
-    def __init__(self, db: BaseDatos):
-        self._db = db
-
-    def crear(self, huella: str, usuario_id: int, version_token: int, expira_en: float) -> None:
-        with self._db.transaccion() as c:
-            c.execute("INSERT INTO restablecimientos (huella, usuario_id, version_token, expira_en) VALUES (?,?,?,?)",
-                      (huella, usuario_id, version_token, expira_en))
-            # Mantenimiento: borrar enlaces vencidos hace más de un día
-            c.execute("DELETE FROM restablecimientos WHERE expira_en < ?", (time.time() - 86400,))
-
-    def buscar(self, huella: str) -> tuple[int, int, float, bool] | None:
-        f = self._db.uno("SELECT * FROM restablecimientos WHERE huella = ?", (huella,))
-        return (f["usuario_id"], f["version_token"], f["expira_en"], bool(f["usado"])) if f else None
-
-    def marcar_usado(self, huella: str) -> None:
-        with self._db.transaccion() as c:
-            c.execute("UPDATE restablecimientos SET usado = 1 WHERE huella = ?", (huella,))
 
 
 # ---------------------------------------------------------------- actividad e intentos

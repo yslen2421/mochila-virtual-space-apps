@@ -91,11 +91,5 @@ CREATE TABLE IF NOT EXISTS aliados (
 CREATE INDEX IF NOT EXISTS ix_aliados_grupo ON aliados (grupo_id, orden);
 CREATE INDEX IF NOT EXISTS ix_aliados_archivo ON aliados (archivo_id);
 
--- Enlaces de "olvidé mi contraseña" (solo la huella SHA-256 del código)
-CREATE TABLE IF NOT EXISTS restablecimientos (
-    huella         TEXT    PRIMARY KEY,
-    usuario_id     INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-    version_token  INTEGER NOT NULL,
-    expira_en      REAL    NOT NULL,
-    usado          INTEGER NOT NULL DEFAULT 0
-);
+-- La recuperación por correo se quitó: si una base alcanzó a crear su tabla, se borra.
+DROP TABLE IF EXISTS restablecimientos;

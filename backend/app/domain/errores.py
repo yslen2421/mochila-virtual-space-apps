@@ -34,9 +34,5 @@ class SinPermiso(ErrorDominio):
     codigo = "SIN_PERMISO"
 
 
-class EnlaceInvalido(ErrorDominio):
-    codigo = "ENLACE_INVALIDO"
-
-
 class DemasiadosIntentos(ErrorDominio):
     codigo = "DEMASIADOS_INTENTOS"

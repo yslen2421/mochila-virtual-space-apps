@@ -45,7 +45,6 @@
       nota: "Solo para el equipo organizador.",
       enlace: { texto: "¿Eres participante? Entra a tu mochila", href: URL_PORTAL },
       logo: estado.logoUrl,
-      alOlvidar: (sugerido) => dialogoOlvido(api, sugerido),
       mensajeInicial: mensaje,
       alEntrar: async (usuario, contrasena) => {
         // Ingreso exclusivo del panel: el servidor solo abre sesión a cuentas Superadmin.
@@ -735,13 +734,12 @@
   const ROLES = { participante: "Participante", superadmin: "Superadmin" };
 
   let filtro = { texto: "", tipo: "todos" };
-  let zonaTabla, zonaConteo, zonaCorreo;
+  let zonaTabla, zonaConteo;
 
   async function vistaParticipantes() {
     document.title = "Participantes — Panel de organización";
     zonaTabla = h("div", { class: "tarjeta tabla-envoltura" }, h("p", { class: "cargando" }, "Cargando…"));
     zonaConteo = h("p", { class: "conteo", "aria-live": "polite" });
-    zonaCorreo = h("div");
     const buscar = h("input", { type: "search", placeholder: "Buscar por nombre, usuario, equipo o correo", "aria-label": "Buscar personas",
       valor: filtro.texto, oninput: (e) => { filtro.texto = e.target.value; pintarTabla(); } });
     const tipo = h("select", { "aria-label": "Filtrar", onchange: (e) => { filtro.tipo = e.target.value; pintarTabla(); } },
@@ -758,7 +756,6 @@
         h("option", { value: "presencial" }, "Presenciales"),
         h("option", { value: "virtual" }, "Virtuales"),
         h("option", { value: "sin_ingreso" }, "Aún no han entrado"),
-        h("option", { value: "sin_correo" }, "Sin correo"),
         h("option", { value: "desactivados" }, "Desactivados")));
     tipo.value = filtro.tipo;
     vaciar(principal,
@@ -768,51 +765,9 @@
         h("div", { class: "separar" },
           h("button", { type: "button", class: "boton secundario", onclick: dialogoImportar }, "Importar lista"),
           h("button", { type: "button", class: "boton", onclick: () => dialogoPersona() }, "Agregar persona"))),
-      zonaCorreo,
       zonaConteo,
       zonaTabla);
-    pintarEstadoCorreo();
     await recargarUsuarios();
-  }
-
-  async function pintarEstadoCorreo() {
-    let estadoCorreo;
-    try { estadoCorreo = await api.pedir("/admin/correo"); } catch { return; }
-    const prueba = h("button", { type: "button", class: "boton secundario pequeno", onclick: () => dialogoCorreoPrueba(estadoCorreo) }, "Enviar correo de prueba");
-    vaciar(zonaCorreo, estadoCorreo.configurado
-      ? h("div", { class: "estado-correo activo" },
-        h("p", {}, h("strong", {}, "Recuperación por correo activa. "), `Los enlaces salen desde ${estadoCorreo.remitente}.`), prueba)
-      : h("div", { class: "estado-correo" },
-        h("p", {}, h("strong", {}, "Los correos todavía no se envían. "),
-          "Falta conectar una cuenta de correo (README, sección «Correo»). Mientras tanto, cada correo se guarda como archivo en la carpeta ",
-          h("code", {}, "datos/correos"), "."), prueba));
-  }
-
-  function dialogoCorreoPrueba(estadoCorreo) {
-    const zona = h("div", { "aria-live": "polite" });
-    const destino = h("input", { type: "email", id: "prueba-destino", valor: estado.usuario.email || "", placeholder: "tu@correo.com" });
-    const enviar = h("button", { type: "submit", class: "boton" }, "Enviar prueba");
-    const dialogo = abrirDialogo(h("form", { class: "dialogo-cuerpo", novalidate: true,
-      onsubmit: async (e) => {
-        e.preventDefault();
-        vaciar(zona);
-        enviar.disabled = true;
-        try {
-          const r = await api.pedir("/admin/correo/prueba", { metodo: "POST", cuerpo: { destino: destino.value.trim() } });
-          vaciar(zona, h("p", { class: "nota-importante" }, r.configurado
-            ? `Enviado a ${r.destino}. Si no llega en un par de minutos, revisa la carpeta de spam.`
-            : "Como el correo aún no está configurado, se guardó como archivo en datos/correos en vez de enviarse."));
-        } catch (error) { zona.append(bloqueError(error)); }
-        finally { enviar.disabled = false; }
-      } },
-      h("h2", {}, "Correo de prueba"),
-      h("p", {}, estadoCorreo.configurado ? `Se enviará desde ${estadoCorreo.remitente}.` : "Sirve para comprobar la configuración cuando conectes la cuenta de correo."),
-      zona,
-      h("div", { class: "campo" }, h("label", { for: "prueba-destino" }, "Enviar a"), destino),
-      h("div", { class: "dialogo-acciones" },
-        h("button", { type: "button", class: "boton discreto", onclick: () => dialogo.close() }, "Cerrar"),
-        enviar)));
-    destino.focus();
   }
 
   async function recargarUsuarios() {
@@ -847,7 +802,6 @@
         case "participante": case "superadmin": return u.rol === filtro.tipo;
         case "presencial": case "virtual": return u.rol === "participante" && u.modalidad === filtro.tipo;
         case "sin_ingreso": return !u.ultimo_login;
-        case "sin_correo": return !u.email;
         case "desactivados": return !u.activo;
         default: return true;
       }
@@ -1017,12 +971,11 @@
       esYo && h("p", { class: "ayuda" }, "No puedes cambiar tu propio rol."),
       notaAdmin,
       datosParticipante,
-      h("details", { class: "mas-datos", open: !editando || u.email || u.modalidad === "virtual" ? true : null },
-        h("summary", {}, "Más datos: correo (para recuperar la contraseña), modalidad", editando ? "" : " y contraseña"),
+      h("details", { class: "mas-datos", open: editando && (u.email || u.modalidad === "virtual") ? true : null },
+        h("summary", {}, "Más datos (opcional): modalidad, correo", editando ? "" : " y contraseña"),
         h("div", { class: "rejilla-2" },
           h("div", { class: "campo" }, h("label", { for: "p-modalidad" }, "Modalidad"), modalidad),
-          h("div", { class: "campo" }, h("label", { for: "p-email" }, "Correo"), email,
-            h("span", { class: "ayuda" }, "Con correo puede recuperar su contraseña sola."))),
+          h("div", { class: "campo" }, h("label", { for: "p-email" }, "Correo"), email)),
         !editando && h("div", { class: "campo" }, h("label", { for: "p-contrasena" }, "Contraseña"), contrasena,
           h("span", { class: "ayuda" }, "Déjala vacía y se genera una fácil de dictar, como cometa-orbita-4821."))),
       h("div", { class: "dialogo-acciones" },
@@ -1066,7 +1019,6 @@
       } },
       h("h2", {}, `Nueva contraseña para ${u.nombre}`),
       h("p", {}, "Su contraseña actual deja de funcionar y se cierran sus sesiones abiertas."),
-      u.email && h("p", { class: "ayuda" }, `También puede elegirla sola: en la pantalla de ingreso, «¿Olvidaste tu contraseña?» le envía un enlace a ${u.email}.`),
       zonaError,
       modo,
       grupoClave,

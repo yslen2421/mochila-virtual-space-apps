@@ -18,8 +18,6 @@
 
   async function iniciar() {
     estado.marca = await cargarMarca(api);
-    const enlace = location.hash.match(/^#\/restablecer\/([\w-]+)/);
-    if (enlace) return mostrarNuevaContrasena(enlace[1]);
     if (!sesion.token) return mostrarIngreso();
     try {
       estado.usuario = (await api.pedir("/auth/yo")).usuario;
@@ -39,7 +37,6 @@
       subtitulo: "Entra a tu mochila",
       nota: "Recibiste tu usuario y contraseña de la organización. Si no los tienes o los olvidaste, escríbele al equipo de Ola Fibonacci.",
       logo: logoDeMarca(estado.marca),
-      alOlvidar: (sugerido) => dialogoOlvido(api, sugerido),
       mensajeInicial: mensaje,
       alEntrar: async (usuario, contrasena) => {
         const r = await api.pedir("/auth/login", { metodo: "POST", cuerpo: { usuario, contrasena } });
@@ -48,22 +45,6 @@
         if (location.hash.startsWith("#/seccion/")) montarPortal();
         else { history.replaceState(null, "", "#/"); montarPortal(); }
       },
-    }));
-  }
-
-  /** Llegó desde el enlace del correo: elige contraseña nueva y entra directo a su mochila. */
-  function mostrarNuevaContrasena(codigo) {
-    document.title = "Nueva contraseña — Mochila virtual";
-    vaciar(app, pantallaNuevaContrasena({
-      codigo, api, logo: logoDeMarca(estado.marca),
-      alListo: (r) => {
-        sesion.token = r.token;
-        estado.usuario = r.usuario;
-        history.replaceState(null, "", location.pathname + "#/");  // el código ya no sirve: se quita de la barra
-        montarPortal();
-        avisar("Listo, tu contraseña quedó guardada");
-      },
-      alPedirOtro: () => { history.replaceState(null, "", location.pathname + "#/"); mostrarIngreso(); dialogoOlvido(api); },
     }));
   }
 
